@@ -21,8 +21,6 @@ class plotVar:
         self.xup = xup
 
 
-
-
 ## /////// ##
 ## globals ##
 ## /////// ##
@@ -272,6 +270,11 @@ def GetSampleNameFromDSID(dsid):
         sample_name = 'data'
     elif dsid == 410000:
         sample_name = 'ttbar'
+    elif dsid in range(361300, 361371+1):
+        sample_name = 'wjets'
+    elif dsid in range(361372, 361467+1):
+        sample_name = 'zjets'
+    
     else:
         sample_name = 'unknown'
 
