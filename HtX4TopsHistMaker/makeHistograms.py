@@ -86,15 +86,21 @@ sample_name = ""
 ## list of histograms -----------------------------------
 hist_dict = {}
 
+## systematic -------------------------------------------
+file_tag = ''
+file_sys = 'nominal'
+
 
 def main(argv):
 
     global tFile
     global hist_dict
+    global input_file 
+    global output_file
+    
+    input_file = argv[1]
 
-    tFile = ROOT.TFile(argv[1], "READ")
-    f2 = ROOT.TFile(output_file, 'RECREATE')
-    tFile.cd()
+    tFile = ROOT.TFile(input_file, "READ")
     if not tFile:
         sys.exit("ERROR : Input file could not be read. Exiting.")
 
@@ -105,8 +111,17 @@ def main(argv):
     print "       XSec       :", xsec
     print "       SumWeights :", sumweights
 
+
+    output_file = 'output_' + input_file.split('/')[-2] + '.' + input_file.split('/')[-1]
+    print output_file
+    f2 = ROOT.TFile(output_file, 'RECREATE')
+    tFile.cd()
+
+
     ## analyze all trees
     for iTree in tree_all:
+        if iTree != 'nominal' and file_sys != 'nominal':
+            continue
         ## run the analysis on each tree
         AnalyzeTree(iTree)
 
@@ -161,10 +176,17 @@ def AnalyzeTree(tree_name):
 
         ## dictionary of event weights by name
         ## --------------------------------------------------------------
+        isSysSample = False
+        weight_dict = {}
         if tree_name == 'nominal':
-            weight_dict = FillEventWeightDict(t)
+            if file_sys == 'nominal':
+                weight_dict = FillEventWeightDict(t)
+            else:
+                weight_dict[file_sys] = ( xsec * lumi * t.weight_mc *
+                                          t.weight_leptonSF *
+                                          t.weight_bTagSF_77 / sumweights)
+    
         else:
-            weight_dict = {}
             weight_dict[tree_name] = ( xsec * lumi * t.weight_mc *
                                        t.weight_leptonSF *
                                        t.weight_bTagSF_77 / sumweights)
@@ -263,10 +285,19 @@ def GetFileMetaData(root_file):
     if isMC:
         GetXSecFromFile(dsid, xsec_file)
         GetSumWeightsFromFile(dsid, sumweights_file)
+    GetTagFromFileName()
     GetSampleNameFromDSID(dsid)
+    
+def GetTagFromFileName():
+    global file_tag
+
+    tag_string = input_file.split('/')[-2]
+    file_tag = tag_string.split('.')[5]
+
 
 def GetSampleNameFromDSID(dsid):
     global sample_name
+    global file_sys
     # data
     if dsid == 0:
         print "This sample is data. Did you expect this for file", input_file, " ?\n"
@@ -275,22 +306,50 @@ def GetSampleNameFromDSID(dsid):
     # backgrounds
     elif dsid == 410000:
         sample_name = 'ttbar'
+        if file_tag == 'e3698_a766_a810_r6282_p2516':
+            file_sys = 'afii'
     elif dsid in range(407009, 407012):
         sample_name = 'ttbar'
     elif dsid in range(410001, 410004+1):
-        sample_name = 'ttbarSys'
+        sample_name = 'ttbar'
+        if dsid == 410001:
+            file_sys = 'radHi'
+        if dsid == 410002:
+            file_sys = 'radLo'
+        if dsid == 410003:
+            file_sys = 'aMCAtNLOHerwigpp'
+        if dsid == 410004:
+            file_sys = 'Herwigpp'
     elif dsid in range(361300, 361371+1):
         sample_name = 'wjets'
     elif dsid in range(361372, 361467+1):
         sample_name = 'zjets'
     elif dsid in range(361520, 361534+1):
-        sample_name = 'wjetsSys'
+        sample_name = 'wjets'
+        file_sys = 'MG5Py8'
     elif dsid in range(361500, 361519+1):
-        sample_name = 'zjetsSys'
+        sample_name = 'zjets'
+        file_sys = 'MG5Py8'
     elif dsid in [410013, 410014, 410011, 410012, 410025, 410026]:
         sample_name = 'singletop'
     elif dsid in [410017, 410018, 410019, 410020, 410099, 410100, 410101, 410102]:
-        sample_name = 'singletopSys'
+        sample_name = 'singletop'
+        if dsid == 410017:
+            file_sys = 'radLo'
+        if dsid == 410018:
+            file_sys = 'radHi'
+        if dsid == 410019:
+            file_sys = 'radLo'
+        if dsid == 410020:
+            file_sys = 'radHi'
+        if dsid == 410099:
+            file_sys = 'radHi'
+        if dsid == 410100:
+            file_sys = 'radLo'
+        if dsid == 410101:
+            file_sys = 'radHi'
+        if dsid == 410102:
+            file_sys = 'radLo'
     elif dsid in range(361081, 361087+1):
         sample_name = 'diboson'
     elif dsid in [410066, 410067, 410068, 410069, 410070, 410073, 410074, 410075, 410081]:
@@ -299,7 +358,6 @@ def GetSampleNameFromDSID(dsid):
         sample_name = 'ttH'
 
     # signals
-    
     elif dsid == 410080:
         sample_name = 'fourtopSM'
     elif dsid == 302777:
