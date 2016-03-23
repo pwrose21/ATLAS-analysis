@@ -177,6 +177,7 @@ def AnalyzeTree(tree_name):
         ## ========================== end =========================== ##
         ## ========================================================== ##
     print "nPreSel", nPreSel
+
 def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
     val = getattr(tree, plot_var.branch_name)
     if type(val) in [float, int]:
@@ -266,16 +267,61 @@ def GetFileMetaData(root_file):
 
 def GetSampleNameFromDSID(dsid):
     global sample_name
+    # data
     if dsid == 0:
+        print "This sample is data. Did you expect this for file", input_file, " ?\n"
         sample_name = 'data'
+
+    # backgrounds
     elif dsid == 410000:
         sample_name = 'ttbar'
+    elif dsid in range(407009, 407012):
+        sample_name = 'ttbar'
+    elif dsid in range(410001, 410004+1):
+        sample_name = 'ttbarSys'
     elif dsid in range(361300, 361371+1):
         sample_name = 'wjets'
     elif dsid in range(361372, 361467+1):
         sample_name = 'zjets'
+    elif dsid in range(361520, 361534+1):
+        sample_name = 'wjetsSys'
+    elif dsid in range(361500, 361519+1):
+        sample_name = 'zjetsSys'
+    elif dsid in [410013, 410014, 410011, 410012, 410025, 410026]:
+        sample_name = 'singletop'
+    elif dsid in [410017, 410018, 410019, 410020, 410099, 410100, 410101, 410102]:
+        sample_name = 'singletopSys'
+    elif dsid in range(361081, 361087+1):
+        sample_name = 'diboson'
+    elif dsid in [410066, 410067, 410068, 410069, 410070, 410073, 410074, 410075, 410081]:
+        sample_name = 'ttV'
+    elif dsid in [341177, 341270, 341271]:
+        sample_name = 'ttH'
+
+    # signals
     
+    elif dsid == 410080:
+        sample_name = 'fourtopSM'
+    elif dsid == 302777:
+        sample_name = 'fourtopCI'
+    elif dsid in range(302055, 302059+1):
+        sample_name = '2uedmKK' + str(1000 + 200*(dsid-302055))
+    elif dsid in range(302470, 302480+1):
+        sample_name = 'TTS' + str(700 + 50*(dsid-302470))
+    elif dsid == 302469:
+        sample_name = 'TTS600'
+    elif dsid == 302481:
+        sample_name = 'TTS1300'
+    elif dsid == 302482:
+        sample_name = 'TTS1400'
+    elif dsid == 302483:
+        sample_name = 'TTD700'
+    elif dsid == 302484:
+        sample_name = 'TTD950'
+    elif dsid == 302485:
+        sample_name = 'TTD1200'
     else:
+        print "Could not determine the sample for input file", input_file, "\n"
         sample_name = 'unknown'
 
 def GetSumWeightsFromFile(dsid, sumweights_file):
