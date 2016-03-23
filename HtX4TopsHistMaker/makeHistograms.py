@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 
 ## /////// ##
 ## imports ##
@@ -30,9 +30,23 @@ class plotVar:
 
 ## trees to loop over -----------------------------------
 tree_nominal = ['nominal']
-tree_sys     = ['JET_19NP_JET_Flavor_Response__1down', 'JET_19NP_JET_Flavor_Composition__1up', 'JET_19NP_JET_EtaIntercalibration_Modelling__1up', 'JET_19NP_JET_Flavor_Composition__1down', 'JET_19NP_JET_EtaIntercalibration_Modelling__1down', 'JET_19NP_JET_EffectiveNP_3__1down', 'JET_19NP_JET_EffectiveNP_6restTerm__1up', 'JET_19NP_JET_EffectiveNP_6restTerm__1down', 'JET_19NP_JET_EffectiveNP_4__1up', 'JET_19NP_JET_BJES_Response__1up', 'JET_19NP_JET_Pileup_RhoTopology__1up', 'JET_19NP_JET_EtaIntercalibration_TotalStat__1up', 'JET_19NP_JET_BJES_Response__1down', 'JET_19NP_JET_Flavor_Response__1up', 'JET_19NP_JET_EffectiveNP_4__1down', 'JET_19NP_JET_Pileup_OffsetNPV__1down', 'JET_19NP_JET_Pileup_OffsetMu__1up', 'JET_19NP_JET_Pileup_PtTerm__1down', 'JET_19NP_JET_PunchThrough_MC15__1down', 'JET_19NP_JET_Pileup_RhoTopology__1down', 'JET_19NP_JET_PunchThrough_MC15__1up', 'JET_19NP_JET_Pileup_OffsetNPV__1up', 'JET_19NP_JET_EffectiveNP_1__1down', 'JET_19NP_JET_EffectiveNP_5__1down', 'JET_19NP_JET_Pileup_OffsetMu__1down', 'JET_19NP_JET_SingleParticle_HighPt__1down', 'JET_19NP_JET_EffectiveNP_2__1up']
-
-tree_all     = tree_nominal + tree_sys
+tree_sys     = ['EG_RESOLUTION_ALL__1down', 'EG_RESOLUTION_ALL__1up', 'EG_SCALE_ALL__1down', 
+                'EG_SCALE_ALL__1up', 'JET_19NP_JET_BJES_Response__1down', 'JET_19NP_JET_BJES_Response__1up',
+                'JET_19NP_JET_EffectiveNP_1__1down', 'JET_19NP_JET_EffectiveNP_1__1up', 'JET_19NP_JET_EffectiveNP_2__1down',
+                'JET_19NP_JET_EffectiveNP_2__1up', 'JET_19NP_JET_EffectiveNP_3__1down', 'JET_19NP_JET_EffectiveNP_3__1up',
+                'JET_19NP_JET_EffectiveNP_4__1down', 'JET_19NP_JET_EffectiveNP_4__1up', 'JET_19NP_JET_EffectiveNP_5__1down',
+                'JET_19NP_JET_EffectiveNP_5__1up', 'JET_19NP_JET_EffectiveNP_6restTerm__1down', 'JET_19NP_JET_EffectiveNP_6restTerm__1up',
+                'JET_19NP_JET_EtaIntercalibration_Modelling__1down', 'JET_19NP_JET_EtaIntercalibration_Modelling__1up',
+                'JET_19NP_JET_EtaIntercalibration_TotalStat__1down', 'JET_19NP_JET_EtaIntercalibration_TotalStat__1up',
+                'JET_19NP_JET_Flavor_Composition__1down', 'JET_19NP_JET_Flavor_Composition__1up',
+                'JET_19NP_JET_Flavor_Response__1down', 'JET_19NP_JET_Flavor_Response__1up', 'JET_19NP_JET_GroupedNP_1__1down',
+                'JET_19NP_JET_GroupedNP_1__1up', 'JET_19NP_JET_Pileup_OffsetMu__1down', 'JET_19NP_JET_Pileup_OffsetMu__1up',
+                'JET_19NP_JET_Pileup_OffsetNPV__1down', 'JET_19NP_JET_Pileup_OffsetNPV__1up', 'JET_19NP_JET_Pileup_PtTerm__1down',
+                'JET_19NP_JET_Pileup_PtTerm__1up', 'JET_19NP_JET_Pileup_RhoTopology__1down', 'JET_19NP_JET_Pileup_RhoTopology__1up',
+                'JET_19NP_JET_PunchThrough_MC15__1down', 'JET_19NP_JET_PunchThrough_MC15__1up', 
+                'JET_19NP_JET_SingleParticle_HighPt__1down', 'JET_19NP_JET_SingleParticle_HighPt__1up', 'JET_JER_SINGLE_NP__1up',
+                'MUONS_ID__1down', 'MUONS_ID__1up', 'MUONS_MS__1down', 'MUONS_MS__1up', 'MUONS_SCALE__1down', 'MUONS_SCALE__1up',
+                ]
 
 ## weight systematics -----------------------------------
 weight_sys   = ['weight_pileup_UP']
@@ -43,8 +57,8 @@ plot_vars = [plotVar('HT_all', 'HT_all', 23, 0, 4600*1000.)]
 ## branches needed --------------------------------------
 branches = set(['lep_n', 'el_n', 'mu_n',
             'jet_n', 'jet_isB_77_n', 'ljet_isHOT_100_n',
-            'Mbb_MindR', 'HT_all', 'weight_mc',
-            'weight_leptonSF', 'weight_bTagSF_77', 'weight_pileup'])
+            'Mbb_MindR', 'HT_all',])
+branchesMC = set([ 'weight_mc', 'weight_leptonSF', 'weight_bTagSF_77', 'weight_pileup'])
             
 
 ## normalize to this luminosity -------------------------
@@ -54,8 +68,11 @@ lumi = 0.001
 xsec_file = "/export/home/prose/2t2bAnalysis/HQTFourTopTools-2.3.37/HQTFourTopTools/scripts/histMaker/PMGXSections.txt"
 
 ## file containing sum of event weights by dsid ---------
-sumweights_file = "/export/home/prose/2t2bAnalysis/HQTFourTopTools-2.3.37/HQTFourTopTools/scripts/histMaker/sampleYields.txt"
+#sumweights_file = "/export/home/prose/2t2bAnalysis/HQTFourTopTools-2.3.37/HQTFourTopTools/scripts/histMaker/sampleYields.txt"
+sumweights_file = "/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/sumWeights.txt"
 
+##
+runDir = "/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/"
 
 ## file specific ----------------------------------------
 ## ------------------------------------------------------
@@ -112,13 +129,18 @@ def main(argv):
     print "       SumWeights :", sumweights
 
 
-    output_file = 'output_' + input_file.split('/')[-2] + '.' + input_file.split('/')[-1]
+    #output_file = 'output_' + input_file.split('/')[-2] + '.' + input_file.split('/')[-1]
+    output_file = 'output_' + str(dsid) + '_' + file_tag + '_' + input_file.split('._')[1]
     print output_file
     f2 = ROOT.TFile(output_file, 'RECREATE')
     tFile.cd()
 
 
     ## analyze all trees
+    if isMC:
+        tree_all = tree_nominal + tree_sys
+    else:
+        tree_all = tree_nominal
     for iTree in tree_all:
         if iTree != 'nominal' and file_sys != 'nominal':
             continue
@@ -140,14 +162,17 @@ def main(argv):
 
 def AnalyzeTree(tree_name):
     global hist_dict
+    global branches
 
     print "Analyzing tree:", tree_name
     t = tFile.Get(tree_name)
     if not t:
         print "\nWARNING : The current tree is not available. Skipping"
     t.SetBranchStatus('*', 0)
+    if isMC:
+        branches = branches + branchesMC
     [t.SetBranchStatus(branchname, 1) for branchname in branches]
-    if tree_name == 'nominal':
+    if tree_name == 'nominal' and isMC:
         [t.SetBranchStatus(branchname, 1) for branchname in weight_sys]
  
     nPreSel = 0
@@ -180,7 +205,10 @@ def AnalyzeTree(tree_name):
         weight_dict = {}
         if tree_name == 'nominal':
             if file_sys == 'nominal':
-                weight_dict = FillEventWeightDict(t)
+                if isMC:
+                    weight_dict = FillEventWeightDict(t)
+                else:
+                    weight_dict['nominal'] = 1
             else:
                 weight_dict[file_sys] = ( xsec * lumi * t.weight_mc *
                                           t.weight_leptonSF *
@@ -282,18 +310,18 @@ def GetFileMetaData(root_file):
     global isMC
     GetDSIDFromSumWeightsTree(root_file)
     isMC = bool(dsid)
+    GetTagFromFileName()
     if isMC:
         GetXSecFromFile(dsid, xsec_file)
         GetSumWeightsFromFile(dsid, sumweights_file)
-    GetTagFromFileName()
     GetSampleNameFromDSID(dsid)
     
 def GetTagFromFileName():
     global file_tag
-
-    tag_string = input_file.split('/')[-2]
-    file_tag = tag_string.split('.')[5]
-
+    #user.prose.410066.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-01_rt
+    #tag_string = input_file.split('/')[-2]
+    #file_tag = tag_string.split('.')[5]
+    file_tag = input_file.split('TOPQ1.')[1].split('.HtX4Tops')[0]
 
 def GetSampleNameFromDSID(dsid):
     global sample_name
@@ -384,25 +412,37 @@ def GetSampleNameFromDSID(dsid):
 
 def GetSumWeightsFromFile(dsid, sumweights_file):
     global sumweights
+    foundWeights = False
     f = open(sumweights_file, 'r')
     for line in f:
         if line.startswith('#'):
             continue
-        if int(line.split()[0]) == dsid:
-            sumweights = float(line.split()[1])
+        if int(line.split()[0]) == dsid and line.split()[1] == file_tag:
+            sumweights = float(line.split()[2])
+            foundWeights = True
             break
     f.close()
+    if not foundWeights:
+        f = open(runDir + '/missingWeight.txt', 'a')
+        f.write(str(dsid) + ' ' + file_tag + '\n')
+        f.close()
 
 def GetXSecFromFile(dsid, xsec_file):
     global xsec
+    foundXsec = False
     f = open(xsec_file, 'r')
     for line in f:
         if line.startswith('#'):
             continue
         if int(line.split()[0]) == dsid:
             xsec = float(line.split()[6])
+            foundXsec = True
             break
     f.close()
+    if not foundXsec:
+        f = open(runDir + '/missingXsec.txt', 'a')
+        f.write(str(dsid) + '\n')
+        f.close()
 
 def GetDSIDFromSumWeightsTree(root_file):
     global dsid
