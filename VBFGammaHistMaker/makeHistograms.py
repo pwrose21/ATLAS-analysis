@@ -65,7 +65,7 @@ m_tree_sys = []
 m_weight_sys = []
 
 ## variables to plot ------------------------------------
-m_plot_vars = [plotVar('mBB_Regression', 'mBB_Regression', 100, 0, 1000*1000.)]
+m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 100, 0, 1000*1000.)]
 
 ## branches needed --------------------------------------
 m_branches = set(['mBB_Regression', 'MV2c20B1', 'MV2c20B2', 'nJ', 'pTBB', 'MCWeight', 
@@ -76,7 +76,8 @@ m_branches = set(['mBB_Regression', 'MV2c20B1', 'MV2c20B2', 'nJ', 'pTBB', 'MCWei
 m_branchesMC = set([])
    
 ## normalize to this luminosity -------------------------
-m_lumi = 1000. # x-sec in pb
+m_lumi = 1000. # convert x-sec from pb to fb
+#m_lumi = m_lumi * 100. # 100 fb-1
 
 ## file containing list of cross sections by dsid -------
 m_xsec_file_str = "/export/home/prose/ATLAS-analysis/VBFGammaHistMaker/crossx.txt"
@@ -117,7 +118,12 @@ def main(argv):
     GetFileMetaData(in_tFile)
     
     # make output file
-    output_file_str = 'outputHists_' + m_input_file_str.split('/')[-1]
+    n_out = 0
+    output_file_str = 'outputHists_' + str(n_out) + '_' + m_input_file_str.split('/')[-1]
+    while os.path.exists(output_file_str):
+        output_file_str = output_file_str.replace('_' + str(n_out) + '_', '_' +str(n_out+1) + '_')
+        n_out = n_out + 1
+        
     print "Writing histograms to output file:", output_file_str
     out_tFile = ROOT.TFile(output_file_str, 'RECREATE')
 
@@ -176,6 +182,7 @@ def AnalyzeTree(t):
     if tree_name == m_tree_nominal[0] and m_isMC:
         [t.SetBranchStatus(branchname, 1) for branchname in m_weight_sys]
 
+    n_selected = 0
     # loop over all events in the file
     # --------------------------------
     for iEvt in range(t.GetEntries()):
@@ -195,7 +202,7 @@ def AnalyzeTree(t):
         ## -------------------------------------------------------------
         if not DoPreSelection(t):
             continue
-
+        n_selected = n_selected + 1
         ## categorize events -------------------------------------------
         ## -------------------------------------------------------------
         event_cat_list = GetEventCategories(t)
@@ -233,22 +240,36 @@ def AnalyzeTree(t):
         ## ========================================================== ##
         ## ========================== end =========================== ##
         ## ========================================================== ##
+    print "Number of events selected:", n_selected
     return hist_dict
 
 def DoPreSelection(t):
     # cut based from arXiv
     if not t.mJJ > 800000.:
         return False
+
+    if not t.MV2c20B1 > -0.0436:
+        return False
+    if not t.MV2c20B2 > -0.0436:
+        return False
+    
+    if not t.nJ >= 4:
+        return False
+    
     if not t.pTJ1 > 60000.:
         return False
     if not t.pTB1 > 60000.:
         return False
     if not t.dEtaJJ > 4.:
         return False
+
     if any(getattr(t,dR) < 0.7 for dR in ['dRJJ','dRBB', 'dRB1J1', 'dRB1J2', 'dRB2J1', 'dRB2J2']):
         return False
     if any(getattr(t,dR) < 1.4 for dR in ['dRJ1Ph','dRJ2Ph', 'dRB1Ph', 'dRB2Ph']):
         return False
+    """
+
+    """
 
     return True
 
@@ -259,21 +280,26 @@ def GetEventCategories(tree):
     n_tag = 0
     n_tag = n_tag + int(tree.MV2c20B1>m_bcut) + int(tree.MV2c20B2>m_bcut)
 
-    n_jet = tree.nJ
+    n_jet = "4p" #tree.nJ
 
     pt_bb = tree.pTBB
 
-    reg = "CR"
-    if n_tag == 2 and tree.mBB_Regression > 110000. and tree.mBB_Regression < 140000.:
+    reg = "mBBcr"
+    if n_tag == 2 and tree.mBB_Regression > 112500. and tree.mBB_Regression < 137500.:
         reg = "SR"
 
     event_cat = ( str(n_tag) + 'tag' + str(n_jet) + 'jet_' +
                   '0ptbb_' + reg)
 
+    event_cat_list.append(event_cat)
+
+    """
     if n_jet == 4:
         event_cat_list.append(event_cat)
     
+        
     event_cat_list.append(event_cat.replace(str(n_jet) + 'jet_', '4pjet_'))
+    """
 
     return event_cat_list
 
@@ -296,7 +322,7 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
             h = hist_dict[h_name]
             # now that it is made, fill
             for iVal in val:
-                #print "Filling hist with value:", iVal, "weight:", weight_dict[iSys]
+                print "Filling hist with value:", iVal, "weight:", weight_dict[iSys], 'for sample', m_sample_name
                 #print "Weight sys / value:", iSys, weight_dict[iSys]
                 h.Fill(iVal, weight_dict[iSys])
 
@@ -483,7 +509,7 @@ def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
 
     # data
     if dsid == -1:
-        print "This sample is data. Did you expect this for file", input_file, " ?\n"
+        print "This sample is data. Did you expect this for file", m_input_file_str, " ?\n"
         sample_name = 'data'
 
     # backgrounds
@@ -494,9 +520,9 @@ def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
     elif dsid == 343391:
         sample_name = 'ZbbjjaQCD'
     elif dsid == 343392:
-        sample_name = 'NonRes_bbjja'
+        sample_name = 'NonResbbjja'
     else:
-        print "Could not determine the sample for input file", input_file, "\n"
+        print "Could not determine the sample for input file", m_input_file_str, "\n"
         
     return sample_name, sample_sys
 
