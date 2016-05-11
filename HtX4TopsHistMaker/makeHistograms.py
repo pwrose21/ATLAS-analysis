@@ -117,7 +117,7 @@ m_sumweights = 1. # sample sum of event weights
 m_sample_name = "" # sample name
 m_sample_cat = "" # sample category -- signal, background, data
 m_sample_sys = 'nominal' # sample systematic
-
+m_isttbar = False
 
 ## ------------------------------------------------------
 ## selection cuts ---------------------------------------
@@ -146,6 +146,7 @@ m_rcjet_n = -1
 
 
 def main(argv):
+    global m_isttbar
 
     # get input_file, sumweights_file, xsec_file, lumi
     ParseCommandLineArguments(argv)
@@ -158,11 +159,17 @@ def main(argv):
 
     # get metadata frm the TFile
     GetFileMetaData(in_tFile)
+
     
-    # make output file
+    # make output file(s)
     output_file_str = 'output_' + str(m_dsid) + '_' + m_file_tag_str + '_' + m_input_file_str.split('._')[1]
     print "Writing histograms to output file:", output_file_str
-    out_tFile = ROOT.TFile(output_file_str, 'RECREATE')
+    if not m_isttbar:
+        out_tFile = ROOT.TFile(output_file_str, 'RECREATE')
+    else:
+        out_tFile_l = ROOT.TFile('ttl' + output_file_str, 'RECREATE')
+        out_tFile_c = ROOT.TFile('ttc' + output_file_str, 'RECREATE')
+        out_tFile_b = ROOT.TFile('ttb' + output_file_str, 'RECREATE')
 
     # cd back to input file
     in_tFile.cd()
@@ -201,16 +208,46 @@ def main(argv):
         hist_dict = AnalyzeTree(this_tTree)
 
         ## save to file and clear hist_dict
-        out_tFile.cd()
-        for iH in hist_dict:
-            hist_dict[iH].Write()
-            hist_dict[iH].Delete()
-        in_tFile.cd()
+        if not m_isttbar:
+            out_tFile.cd()
+            for iH in hist_dict:
+                hist_dict[iH].Write()
+                hist_dict[iH].Delete()
+            in_tFile.cd()
+
+        else:
+            for iH in hist_dict:
+                hist = hist_dict[iH]
+                if hist.GetName().startswith('ttl'):
+                    out_tFile_l.cd()
+                    hist.SetName(hist.GetName().replace('ttl',''))
+                    hist.SetTitle(hist.GetName())
+                    hist.Write()
+                    hist.Delete()
+                elif hist.GetName().startswith('ttc'):
+                    out_tFile_c.cd()
+                    hist.SetName(hist.GetName().replace('ttc',''))
+                    hist.SetTitle(hist.GetName())
+                    hist.Write()
+                    hist.Delete()
+                elif hist.GetName().startswith('ttb'):
+                    out_tFile_b.cd()
+                    hist.SetName(hist.GetName().replace('ttb',''))
+                    hist.SetTitle(hist.GetName())
+                    hist.Write()
+                    hist.Delete()
+                else:
+                    sys.exit("ERROR :: ttbar hist not properly categorized")
+            in_tFile.cd
 
     # close the input and output files
     in_tFile.Close()
-    out_tFile.Close()
-
+    if not m_isttbar:
+        out_tFile.Close()
+    else:
+        out_tFile_l.Close()
+        out_tFile_c.Close()
+        out_tFile_b.Close()
 
 def AnalyzeTree(t):
     hist_dict = {}
@@ -372,6 +409,7 @@ def DoPreSelection(tree):
     return True
 
 def GetEventCategories(tree):
+    global m_isttbar
     event_cat_dict = {} ## given event might be in more than one category
                         ## i.e. inclusive/exclusive ntag
                         ## entries are {category : trf_weight}
@@ -388,6 +426,11 @@ def GetEventCategories(tree):
     ljet_cat = '' + '0TTRCLooser'*(m_rcjet_n==0) + '1TTRCLooser'*(m_rcjet_n==1) + '2TTRCLooser'*(m_rcjet_n>=2)
 
     event_cat_base = 'c1l' + ljet_cat + jet_cat
+
+    if m_isttbar:
+        hfcat = tree.HF_SimpleClassification
+        prefix = 'ttb'*(hfcat==1) + 'ttl'*(hfcat==0) + 'ttc'*(hfcat==-1)
+        event_cat_base = prefix + event_cat_base
 
     # no trf, use btag category
     if not m_doTRF:
@@ -745,6 +788,7 @@ def GetSumWeightsFromFile(dsid, file_tag, sumweights_file):
 def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
     sample_name = ''
     sample_sys  = 'nominal'
+    global m_isttbar
 
     # data
     if dsid == 0:
@@ -828,6 +872,9 @@ def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
         sample_name = 'TTD1200'
     else:
         print "Could not determine the sample for input file", input_file, "\n"
+    
+    if sample_name == 'ttbar':
+        m_isttbar = True
         
     return sample_name, sample_sys
 
