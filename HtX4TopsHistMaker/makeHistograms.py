@@ -37,27 +37,8 @@ class plotVar:
 
 ## trees to loop over -----------------------------------
 m_tree_nominal = ['nominal']
-m_tree_sys     = ['EG_RESOLUTION_ALL__1down', 'EG_RESOLUTION_ALL__1up', ]
-"""                  'EG_SCALE_ALL__1down', 'EG_SCALE_ALL__1up', 
-                  'JET_19NP_JET_BJES_Response__1down', 'JET_19NP_JET_BJES_Response__1up',
-                  'JET_19NP_JET_EffectiveNP_1__1down', 'JET_19NP_JET_EffectiveNP_1__1up', 
-                  'JET_19NP_JET_EffectiveNP_2__1down', 'JET_19NP_JET_EffectiveNP_2__1up', 
-                  'JET_19NP_JET_EffectiveNP_3__1down', 'JET_19NP_JET_EffectiveNP_3__1up',
-                  'JET_19NP_JET_EffectiveNP_4__1down', 'JET_19NP_JET_EffectiveNP_4__1up', 
-                  'JET_19NP_JET_EffectiveNP_5__1down', 'JET_19NP_JET_EffectiveNP_5__1up', 
-                  'JET_19NP_JET_EffectiveNP_6restTerm__1down', 'JET_19NP_JET_EffectiveNP_6restTerm__1up',
-                  'JET_19NP_JET_EtaIntercalibration_Modelling__1down', 'JET_19NP_JET_EtaIntercalibration_Modelling__1up',
-                  'JET_19NP_JET_EtaIntercalibration_TotalStat__1down', 'JET_19NP_JET_EtaIntercalibration_TotalStat__1up',
-                  'JET_19NP_JET_Flavor_Composition__1down', 'JET_19NP_JET_Flavor_Composition__1up',
-                  'JET_19NP_JET_Flavor_Response__1down', 'JET_19NP_JET_Flavor_Response__1up', 'JET_19NP_JET_GroupedNP_1__1down',
-                  'JET_19NP_JET_GroupedNP_1__1up', 'JET_19NP_JET_Pileup_OffsetMu__1down', 'JET_19NP_JET_Pileup_OffsetMu__1up',
-                  'JET_19NP_JET_Pileup_OffsetNPV__1down', 'JET_19NP_JET_Pileup_OffsetNPV__1up', 'JET_19NP_JET_Pileup_PtTerm__1down',
-                  'JET_19NP_JET_Pileup_PtTerm__1up', 'JET_19NP_JET_Pileup_RhoTopology__1down', 'JET_19NP_JET_Pileup_RhoTopology__1up',
-                  'JET_19NP_JET_PunchThrough_MC15__1down', 'JET_19NP_JET_PunchThrough_MC15__1up', 
-                  'JET_19NP_JET_SingleParticle_HighPt__1down', 'JET_19NP_JET_SingleParticle_HighPt__1up', 'JET_JER_SINGLE_NP__1up',
-                  'MUONS_ID__1down', 'MUONS_ID__1up', 'MUONS_MS__1down', 'MUONS_MS__1up', 'MUONS_SCALE__1down', 'MUONS_SCALE__1up',
-                  ]
-"""
+m_tree_sys     = []
+
 ## weight systematics -----------------------------------
 m_weight_sys   = ['weight_pileup_UP', 'weight_pileup_DOWN',
                   'weight_indiv_SF_EL_Trigger_UP', 'weight_indiv_SF_EL_Trigger_DOWN',
@@ -74,6 +55,10 @@ m_weight_sys   = ['weight_pileup_UP', 'weight_pileup_DOWN',
                   'weight_indiv_SF_MU_TTVA_SYST_UP', 'weight_indiv_SF_MU_TTVA_SYST_DOWN',
                   'weight_jvt_UP', 'weight_jvt_DOWN',
                   ]
+
+##testing
+m_weight_sys = []
+
 m_trf_sys = ['trf_weight_77_2ex_eigenvars_B_up', 'trf_weight_77_2ex_eigenvars_B_down',
              'trf_weight_77_2ex_eigenvars_C_up', 'trf_weight_77_2ex_eigenvars_C_down',
              'trf_weight_77_2ex_eigenvars_Light_up', 'trf_weight_77_2ex_eigenvars_Light_down',
@@ -85,12 +70,19 @@ m_trf_sys = ['trf_weight_77_2ex_eigenvars_B_up', 'trf_weight_77_2ex_eigenvars_B_
              'trf_weight_77_4in_eigenvars_B_up', 'trf_weight_77_4in_eigenvars_B_down',
              'trf_weight_77_4in_eigenvars_C_up', 'trf_weight_77_4in_eigenvars_C_down',
              'trf_weight_77_4in_eigenvars_Light_up', 'trf_weight_77_4in_eigenvars_Light_down',
-             'trf_weight_77_4in_extrapolation_up', 'trf_weight_77_24in_extrapolation_down',
+             'trf_weight_77_4in_extrapolation_up', 'trf_weight_77_4in_extrapolation_down',
              ]
+
+m_trf_sys = []
+
 m_btag_sys = []
 
 ## variables to plot ------------------------------------
-m_plot_vars = [plotVar('Meff', 'Meff', 60, 0, 3000*1000.)]
+## branch name can be something already in the tree OR
+##   the name of a global variable computed in CalculateEventVariables 
+m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000.),
+               plotVar('m_jet_n', 'nJets', 10, 0, 10)
+               ]
 
 ## branches needed --------------------------------------
 #m_branches = set(['lep_n', 'el_n', 'mu_n',
@@ -99,7 +91,7 @@ m_plot_vars = [plotVar('Meff', 'Meff', 60, 0, 3000*1000.)]
 #m_branchesMC = set([ 'weight_mc', 'weight_leptonSF', 'weight_bTagSF_77', 'weight_pileup'])
     
 ## normalize to this luminosity -------------------------
-m_lumi = 0.001
+m_lumi = 1.
 
 ## file containing list of cross sections by dsid -------
 m_xsec_file_str = "/export/home/prose/2t2bAnalysis/HQTFourTopTools-2.3.37/HQTFourTopTools/scripts/histMaker/PMGXSections.txt"
@@ -130,9 +122,9 @@ m_sample_sys = 'nominal' # sample systematic
 ## ------------------------------------------------------
 ## selection cuts ---------------------------------------
 ## ------------------------------------------------------
-GeV = 1000.
+GeV             = 1000.
 m_WP            = '77'
-m_cut_btag      = 
+m_cut_btag      = -0.4434 
 m_cut_jet_pt    = 30. * GeV
 m_cut_jet_eta   = 2.5
 m_cut_lep_pt    = 30. * GeV
@@ -140,6 +132,7 @@ m_cut_lep_eta   = 2.5
 m_cut_rcjet_pt  = 300. * GeV
 m_cut_rcjet_eta = 2.0
 m_cut_rcjet_m   = 100. * GeV
+m_cut_rcjet_nsub = 2
 
 ## ------------------------------------------------------
 ## event variables --------------------------------------
@@ -151,11 +144,13 @@ m_jet_n   = -1
 m_bjet_n  = -1
 m_rcjet_n = -1
 
+
 def main(argv):
 
     # get input_file, sumweights_file, xsec_file, lumi
     ParseCommandLineArguments(argv)
 
+    ## ---------------input / output file stuff------------------------------------
     # open the TFile, check that it can be read
     in_tFile = ROOT.TFile(m_input_file_str, "READ")
     if not in_tFile:
@@ -171,6 +166,7 @@ def main(argv):
 
     # cd back to input file
     in_tFile.cd()
+    ## ----------------------------------------------------------------------------
 
     # define which trees to analyze
     # -----------------------------
@@ -181,11 +177,19 @@ def main(argv):
     else:
         tree_all = m_tree_nominal
 
+    # define which b-tag systematics
+    # ------------------------------
+    global m_weight_sys
+    if m_doTRF:
+        m_weight_sys = m_weight_sys + m_trf_sys
+    else:
+        m_weight_sys = m_weight_sys + m_btag_sys
+
     # analyze trees
     # -------------
     for iTree in tree_all:
         # do not analyze systematic trees for systematic samples
-        if iTree in m_tree_sys and m_sample_sys != 'nominal':
+        if iTree in m_tree_sys and m_sample_sys != m_tree_nominal[0]:
             continue
 
         # get the TTree
@@ -218,15 +222,8 @@ def AnalyzeTree(t):
     # -----------------
     # we need mostly everything
     t.SetBranchStatus('*', 1)
-    """
-    t.SetBranchStatus('*', 0)
-    branches = copy.deepcopy(m_branches)
-    if m_isMC:
-        branches.update(m_branchesMC)
-    [t.SetBranchStatus(branchname, 1) for branchname in branches]
-    if tree_name == 'nominal' and m_isMC:
-        [t.SetBranchStatus(branchname, 1) for branchname in m_weight_sys]
-    """
+
+
     # loop over all events in the file
     # --------------------------------
     for iEvt in range(t.GetEntries()):
@@ -253,6 +250,9 @@ def AnalyzeTree(t):
         if not event_cat_dict:
             continue
 
+
+
+
         ## dictionary of event weights by name
         ## needs to be done after pre-selection to get lepton SF correct
         ## -------------------------------------------------------------
@@ -277,14 +277,16 @@ def AnalyzeTree(t):
             else:
                 # for sys samples, use nominal weights, but label hists by the sample_sys
                 weight_dict[sample_sys] = ( m_xsec * m_lumi * t.weight_mc *
-                                          t.weight_leptonSF *
-                                          t.weight_bTagSF_77 / m_sumweights)
-    
+                                          t.weight_leptonSF / m_sumweights)
+                if not m_doTRF:
+                    weight_dict[sample_sys] = weight_dict[sample_sys] * getattr(t, 'weight_bTagSF_' + m_WP)
         else:
             # for systematic tree, use nominal weights, but label hists by the tree_sys
             weight_dict[tree_name] = ( m_xsec * m_lumi * t.weight_mc *
-                                       t.weight_leptonSF *
-                                       t.weight_bTagSF_77 / m_sumweights)
+                                       t.weight_leptonSF / m_sumweights)
+
+            if not m_doTRF:
+                weight_dict[tree_name] = weight_dict[tree_name] * getattr(t, 'weight_bTagSF_' + m_WP)
 
         ## create and/or fill histograms
         ## -------------------------------------------------------------
@@ -336,28 +338,35 @@ def CalculateEventVariables(tree):
         if ( mu_pt[i] > m_cut_lep_pt and
              abs(mu_eta[i]) < m_cut_lep_eta):
             m_mu_n = m_mu_n + 1
-            m_lep_n = m_lep_n +1
+            m_lep_n = m_lep_n + 1
     
     ## number of mass-tagged rc jets
     global m_rcjet_n
     m_rcjet_n = 0
-    rcjet_pt  = tree.reclustered_jet_pt
-    rcjet_eta = tree.reclustered_jet_eta
-    rcjet_m   = tree.reclustered_jet_m
+    rcjet_pt  = tree.reclustered_jets_pt
+    rcjet_eta = tree.reclustered_jets_eta
+    rcjet_m   = tree.reclustered_jets_m
+    rcjet_nsub = tree.reclustered_jets_constituents_n
     for i in xrange(len(rcjet_pt)):
         if ( rcjet_pt[i] > m_cut_rcjet_pt and
              abs(rcjet_eta[i]) < m_cut_rcjet_eta and
-             rcjet_m[i] > m_cut_rcjet_m ):
+             rcjet_m[i] > m_cut_rcjet_m  and rcjet_nsub[i]>=m_cut_rcjet_nsub):
             m_rcjet_n = m_rcjet_n + 1
 
 def DoPreSelection(tree):
 
-    CalculateEventVariables()
+    CalculateEventVariables(tree)
+
+    #print globals()["m_lep_n"]
+    #print eval('m_lep_n')
 
     if (m_lep_n != 1) or (m_jet_n < 5):
         return False
 
     if (not m_doTRF) and (m_bjet_n < 2):
+        return False
+
+    if (tree.met_met < 20000.) or (tree.met_met + tree.mTW < 60000.):
         return False
 
     return True
@@ -376,17 +385,19 @@ def GetEventCategories(tree):
     else:
         b_cat = ''
     ## HOT category
-    ljet_cat = '' + '0TTLooser'*(m_rcjet_n==0) + '1TTLooser'*(m_rcjet_n==1) + '2TTLooser'*(m_rcjet_n>=2)
+    ljet_cat = '' + '0TTRCLooser'*(m_rcjet_n==0) + '1TTRCLooser'*(m_rcjet_n==1) + '2TTRCLooser'*(m_rcjet_n>=2)
 
     event_cat_base = 'c1l' + ljet_cat + jet_cat
 
     # no trf, use btag category
     if not m_doTRF:
         event_cat = event_cat_base + b_cat
-        if ( all(a in event_cat for a in ['6j', '1TTLooser'])
-             and any(a in event_cat for a in ['3b', '4b'])  ):
+        if ( all(a in event_cat for a in ['6j', '1TTRCLooser'])
+             and any(b in event_cat for b in ['3b', '4b'])  ):
+            #print "Determining mBB cat for event_cat:", event_cat
             mbb_cat = getMbbCat(tree, m_cut_btag)
             event_cat = event_cat + mbb_cat
+            #print event_cat
         event_cat_dict[event_cat] = 1
         event_cat_dict[event_cat + '_' + lep_cat] = 1
 
@@ -394,10 +405,12 @@ def GetEventCategories(tree):
     else:
         for [i, br] in [['2b','trf_weight_'+m_WP+'_2ex'], ['3b','trf_weight_'+m_WP+'_3ex'], ['4b','trf_weight_'+m_WP+'_4in']]:
             event_cat = event_cat_base + i
-            if ( all(a in event_cat for a in ['6j', '1TTLooser'])
+            if ( all(a in event_cat for a in ['6j', '1TTRCLooser'])
                  and any(a in event_cat for a in ['3b', '4b'])  ):
+                #print "Determining mBB cat for event_cat:", event_cat
                 mbb_cat = getMbbCatTRF(tree, i, m_WP)
                 event_cat = event_cat + mbb_cat
+                #print event_cat
             event_cat_dict[event_cat] = getattr(tree, br)
             event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, br)
     
@@ -408,7 +421,7 @@ def getMbbCat(tree, tagCut):
     jet_pt       = tree.jet_pt
     jet_eta      = tree.jet_eta
     jet_phi      = tree.jet_phi
-    jet_m        = tree.jet_m
+    jet_m        = 0 #tree.jet_m
     jet_mv2c20   = tree.jet_mv2c20
 
     mBB = 0
@@ -418,18 +431,21 @@ def getMbbCat(tree, tagCut):
         if not jet_mv2c20[i] > tagCut:
             continue
         tlv1 = ROOT.TLorentzVector(0,0,0,0)
-        tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], jet_m[i])
+        tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
         for j in range(i+1, len(jet_pt)):
             if not jet_mv2c20[j] > tagCut:
                 continue
             tlv2 = ROOT.TLorentzVector(0,0,0,0)
-            tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], jet_m[j])
+            tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], 0)
 
             if tlv1.DeltaR(tlv2) < mindR:
                 mindR = tlv1.DeltaR(tlv2)
                 mBB = (tlv1 + tlv2).M()
 
-    return mBB
+    #print mBB
+    if mBB > 100. * GeV:
+        return "HighMbb"
+    return "LowMbb"
 
 
 def getMbbCatTRF(tree, ntagstr, WP):
@@ -443,7 +459,7 @@ def getMbbCatTRF(tree, ntagstr, WP):
     jet_pt       = tree.jet_pt
     jet_eta      = tree.jet_eta
     jet_phi      = tree.jet_phi
-    jet_m        = tree.jet_m
+    jet_m        = 0 # tree.jet_m
     jet_isTagged = getattr(tree, tag_br)
 
 
@@ -453,30 +469,37 @@ def getMbbCatTRF(tree, ntagstr, WP):
         if not jet_isTagged[i]:
             continue
         tlv1 = ROOT.TLorentzVector(0,0,0,0)
-        tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], jet_m[i])
+        tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
         for j in range(i+1, len(jet_pt)):
             if not jet_isTagged[j]:
                 continue
             tlv2 = ROOT.TLorentzVector(0,0,0,0)
-            tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], jet_m[j])
+            tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], 0)
 
             if tlv1.DeltaR(tlv2) < mindR:
                 mindR = tlv1.DeltaR(tlv2)
                 mBB = (tlv1 + tlv2).M()
-
-    return mBB
+    #print mBB
+    if mBB > 100. * GeV:
+        return "HighMbb"
+    return "LowMbb"
 
 def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
-    val = getattr(tree, plot_var.branch_name)
+    try:
+        val = getattr(tree, plot_var.branch_name)
+    except:
+        val = globals()[plot_var.branch_name]
+    if any(a in plot_var.branch_name for a in ['Meff']):
+        val = val / 1000.
     if type(val) in [float, int]:
         val = [val]
     for iCat in event_cat_dict:
         for iSys in weight_dict:
-            if m_doTRF and not matchCatToSysForTRF(iCat, iSys):
-                print "Skipping trf sys for sys and category:", iSys, iCat
+            if m_doTRF and 'trf_weight' in iSys and not matchCatToSysForTRF(iCat, iSys):
+                #print "Skipping trf sys for sys and category:", iSys, iCat
                 continue
             #h_name = ('h_' + sample_name + '_'+ plot_var.title + '_' + iCat + '_' + iSys)
-            h_name = iCat + (iSys != 'nominal') * ('_' + iSys)
+            h_name = iCat + '_' + plot_var.title + (iSys != 'nominal') * ('_' + iSys)
             h = hist_dict.get(h_name, '')
             if not h:
                 h = ROOT.TH1F(h_name, h_name, plot_var.nbinsx, plot_var.xlow, plot_var.xup)
@@ -491,10 +514,10 @@ def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
                 #print "Filling hist with value:", iVal, "weight:", weight_dict[iSys]
                 #print "Weight sys / value:", iSys, weight_dict[iSys]
                 if "trf_weight" in iSys:
-                    print "Filling trf weight sys for sys", iSys
+                    #print "Filling trf weight sys for sys", iSys
                     h.Fill(iVal, weight_dict[iSys])
                 else:
-                    print "Filling normal weight sys for sys", iSys
+                    #print "Filling normal weight sys for sys", iSys
                     h.Fill(iVal, weight_dict[iSys] * event_cat_dict[iCat])
 
 def matchCatToSysForTRF(cat, sys):
@@ -514,15 +537,16 @@ def FillEventWeightDict(tree):
     wPU = tree.weight_pileup
     wLSF = 1
     if m_el_n == 1:
-            wLSF = (t.weight_indiv_SF_EL_Trigger * t.weight_indiv_SF_EL_Reco *
-                    t.weight_indiv_SF_EL_ID * t.weight_indiv_SF_EL_Isol)
+            wLSF = (tree.weight_indiv_SF_EL_Trigger * tree.weight_indiv_SF_EL_Reco *
+                    tree.weight_indiv_SF_EL_ID * tree.weight_indiv_SF_EL_Isol)
     elif m_mu_n == 1:
-            wLSF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
-                    t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
+            wLSF = (tree.weight_indiv_SF_MU_Trigger * tree.weight_indiv_SF_MU_ID *
+                    tree.weight_indiv_SF_MU_Isol * tree.weight_indiv_SF_MU_TTVA)
 
-    wBTag = tree.weight_bTagSF_ + m_WP
-    if m_doTRF:
-        wBTag = 1
+    wBTag = 1            
+    if not m_doTRF:
+        wBTag = getattr(tree, 'weight_bTagSF_' + m_WP)
+
     wBase = m_xsec * m_lumi * tree.weight_mc / m_sumweights
     weight_dict['nominal'] = wBase * wPU * wLSF * wBTag
     for iW in m_weight_sys:
@@ -534,14 +558,14 @@ def FillEventWeightDict(tree):
             wSplit = iW.split('_')
             nom_indiv_weight = ( wSplit[0] + '_' + wSplit[1] + '_' + wSplit[2] + 
                                  '_' + wSplit[3] + '_' + wSplit[4] )
-            print "Found nom indiv weight", nom_indiv_weight, " for weight sys", iW
+            #print "Found nom indiv weight", nom_indiv_weight, " for weight sys", iW
             weight_dict[iW] = wBase * wPU * getattr(tree, iW) * wBTag * wLSF / getattr(tree, nom_indiv_weight)
         
         if 'weight_indiv_SF_MU' in iW and m_mu_n == 1:
             wSplit = iW.split('_')
             nom_indiv_weight = ( wSplit[0] + '_' + wSplit[1] + '_' + wSplit[2] +
                                  '_' + wSplit[3] + '_' + wSplit[4] )
-            print "Found nom indiv weight", nom_indiv_weight, " for weight sys", iW
+            #print "Found nom indiv weight", nom_indiv_weight, " for weight sys", iW
             weight_dict[iW] = wBase * wPU * getattr(tree, iW) * wBTag * wLSF / getattr(tree, nom_indiv_weight)
 
         if 'weight_bTagSF' in iW and not m_doTRF:
@@ -588,7 +612,7 @@ def ParseCommandLineArguments(argv):
         if opt in ('-s', '--sumWeightsFile'):
             m_sumweights_file_str = val
         if opt in ('-l', '--lumi'):
-            m_lumi = val
+            m_lumi = float(val)
         if opt in ('-t', '--trf'):
             m_doTRF = True
 
@@ -613,15 +637,21 @@ def boolTOstr(bool):
     return "False"
 
 def GetFileMetaData(root_file): # root_file is an opened TFile
+    print "\nINFO : Summary of MetaData --"
+
     # dsid ----------------------------------------------------------
     global m_dsid
     m_dsid = GetDSIDFromSumWeightsTree(root_file)
     if m_dsid < 0:
         sys.exit("Error : Could not get dsid for this sample")
 
+    print "       DSID        :", m_dsid
+
     # isMC ----------------------------------------------------------
     global m_isMC
     m_isMC = bool(m_dsid)
+
+    print "       isMC        :", m_isMC
 
     # tag -----------------------------------------------------------
     global m_file_tag_str
@@ -637,11 +667,15 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
         if m_xsec < 0:
             sys.exit("Error : Could not get xsec for this sample")
 
+        print "       XSec        :", m_xsec
+
         # sum of event weights --------------------------------------
         global m_sumweights
         m_sumweights = GetSumWeightsFromFile(m_dsid, m_file_tag_str, m_sumweights_file_str)
         if m_sumweights < 0:
             sys.exit("Error : Could not get sumweights for this sample")
+
+        print "       SumWeights  :", m_sumweights
 
     # sample name, file systematic
     m_sample_name, m_sample_sys = GetSampleNameAndSysFromDSIDAndTag(m_dsid, m_file_tag_str)
@@ -649,11 +683,6 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
         sys.exit("Error : Could not determine the sample name for dsid " + str(dsid)
                  + " and tag " + m_file_tag_str)
 
-    print "\nINFO : Summary of MetaData --"
-    print "       DSID        :", m_dsid
-    print "       isMC        :", m_isMC
-    print "       XSec        :", m_xsec
-    print "       SumWeights  :", m_sumweights
     print "       Sample name :", m_sample_name
     print "       Sample sys  :", m_sample_sys, '\n'
 

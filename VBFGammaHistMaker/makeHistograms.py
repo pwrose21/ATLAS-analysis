@@ -174,6 +174,8 @@ def AnalyzeTree(t):
 
     # activate branches
     # -----------------
+    "Basically need all"
+    """
     t.SetBranchStatus('*', 0)
     branches = copy.deepcopy(m_branches)
     if m_isMC:
@@ -181,7 +183,7 @@ def AnalyzeTree(t):
     [t.SetBranchStatus(branchname, 1) for branchname in branches]
     if tree_name == m_tree_nominal[0] and m_isMC:
         [t.SetBranchStatus(branchname, 1) for branchname in m_weight_sys]
-
+    """
     n_selected = 0
     # loop over all events in the file
     # --------------------------------
@@ -245,17 +247,28 @@ def AnalyzeTree(t):
 
 def DoPreSelection(t):
     # cut based from arXiv
+    if not t.passTrig:
+        return False
+
     if not t.mJJ > 800000.:
         return False
 
-    if not t.MV2c20B1 > -0.0436:
+    if not t.MV2c20B1 > m_bcut:
         return False
-    if not t.MV2c20B2 > -0.0436:
+    if not t.MV2c20B2 > m_bcut:
         return False
     
     if not t.nJ >= 4:
         return False
-    
+
+    if not t.pTPh > 30000.:
+        return False
+
+    if not t.BDT > 0:
+        return False
+
+    """
+
     if not t.pTJ1 > 60000.:
         return False
     if not t.pTB1 > 60000.:
@@ -267,7 +280,6 @@ def DoPreSelection(t):
         return False
     if any(getattr(t,dR) < 1.4 for dR in ['dRJ1Ph','dRJ2Ph', 'dRB1Ph', 'dRB2Ph']):
         return False
-    """
 
     """
 
@@ -279,17 +291,40 @@ def GetEventCategories(tree):
 
     n_tag = 0
     n_tag = n_tag + int(tree.MV2c20B1>m_bcut) + int(tree.MV2c20B2>m_bcut)
+    if not n_tag == 2:
+        return []
 
-    n_jet = "4p" #tree.nJ
+    n_jet = tree.nJ
+    if n_jet >=4:
+        n_jet = '4p'
 
     pt_bb = tree.pTBB
+    if pt_bb > 100000.:
+        pt_bb = '100'
+    else:
+        pt_bb = '0'
 
+    reg = ''
+    
     reg = "mBBcr"
-    if n_tag == 2 and tree.mBB_Regression > 112500. and tree.mBB_Regression < 137500.:
+    if n_tag == 2 and tree.mBB_Regression > 110000. and tree.mBB_Regression < 140000.:
+        #round to binning#tree.mBB_Regression > 112500. and tree.mBB_Regression < 137500.:
         reg = "SR"
+    
+    event_cat = ( str(n_tag) + 'tag' + str(n_jet) + 'jet_' +
+                  str(pt_bb) + 'ptbb_' + reg)
+
+    event_cat_list.append(event_cat)
+
+
+    ## Z CR
+    reg = "mBBcrZ"
+    if n_tag ==2 and tree.mBB_Regression > 80000. and tree.mBB_Regression < 100000.:
+        # round to binning#tree.mBB_Regression > 81000. and tree.mBB_Regression < 99000.
+        reg = "SRZ"
 
     event_cat = ( str(n_tag) + 'tag' + str(n_jet) + 'jet_' +
-                  '0ptbb_' + reg)
+                  str(pt_bb) + 'ptbb_' + reg)
 
     event_cat_list.append(event_cat)
 
@@ -314,6 +349,7 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
             h = hist_dict.get(h_name, '')
             if not h:
                 h = ROOT.TH1F(h_name, h_name, plot_var.nbinsx, plot_var.xlow, plot_var.xup)
+                h.Sumw2(ROOT.kTRUE)
                 h.GetXaxis().SetTitle(plot_var.title + ' ' + GetUnits(plot_var.title))
                 h.GetYaxis().SetTitle("Entries / " + "{0:.1f}".format((plot_var.xup - plot_var.xlow) / plot_var.nbinsx ) 
                                       + " " + GetUnits(plot_var.title))
@@ -380,7 +416,7 @@ def ParseCommandLineArguments(argv):
         if opt in ('-s', '--sumWeightsFile'):
             m_sumweights_file_str = val
         if opt in ('-l', '--lumi'):
-            m_lumi = val
+            m_lumi = float(val)
 
     # check that we have everything
     if not os.path.isfile(m_input_file_str):
