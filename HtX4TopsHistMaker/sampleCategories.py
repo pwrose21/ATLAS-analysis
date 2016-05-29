@@ -51,7 +51,7 @@ def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
         sample_name = 'wjets-sherpa22'
 
     elif ( (dsid in range(363102, 363122+1)) or
-           (disd in range(363361, 363435+1)) ):
+           (dsid in range(363361, 363435+1)) ):
         sample_name = 'zjets-sherpa22'
 
     elif dsid in range(361300, 361371+1):
