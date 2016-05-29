@@ -1,0 +1,46 @@
+import condor, os, commands, time, sys
+
+# -- the program to run --
+exe = '/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/makeHistograms.py'
+
+# -- master directory and subdirectories --
+input_dir = '/export/share/diskvault2/prose/2t2bAnalysis/HtX4TopsNtuples/00-00-04/'
+status, subDirs = commands.getstatusoutput('ls ' + input_dir)
+subDirs = subDirs.split('\n')
+
+
+# -- loop subdirectories --
+for i,iDir in enumerate(subDirs):
+
+    if not 'output.root' in iDir:
+        continue
+    
+    #  -- arg template --
+    # for 2ued, no TRF
+    arg_template = ' -f %s'
+    if (any(a in iDir for a in ['302055', '302056', '302057', '302058', '302059'])
+        or 'physics_Main' in iDir):
+        pass
+    else:
+        arg_template = arg_template + ' -t'
+
+    # -- dir name --
+    # separate condor dir for each sample
+    # data example : user.prose.00278968.physics_Main.DAOD_TOPQ4.f628_m1497_p2452.HtX4Tops_00-00-04_output.root/
+    # mc example :   user.prose.302057.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4017_s2608_s2183_r6869_r6282_p2516.HtX4Tops_00-00-04_output.root
+    dirname = 'condorRun-' + time.strftime("%d_%m_%Y") + '-' + iDir.split('.')[2] + '-' + iDir.split('.')[5] + '-output'
+    if '-t' in arg_template:
+        dirname = dirname + '_withTRF'
+
+    input_files = []
+    status, files = commands.getstatusoutput('ls ' + input_dir + iDir)
+    files = files.split('\n')
+
+    for iFile in files:
+        input_files.append(input_dir + iDir + '/' + iFile)
+
+    try:
+        condor.run(exe, arg_template, input_files, dirname = dirname, n_files = 1)
+    except:
+        print "Problem submitting from directory:", iDir
+        print "Need to inspect files:", input_files
