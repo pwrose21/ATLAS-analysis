@@ -8,6 +8,9 @@ import sys, os, subprocess, getopt
 import re, time, copy, math, array
 import ROOT
 
+# local imports
+from sampleCategories import *
+
 
 ## /////// ##
 ## classes ##
@@ -36,7 +39,7 @@ class plotVar:
 ## Convention : globals start with "m_"
 
 ## trees to loop over -----------------------------------
-m_tree_nominal = ['nominal']
+m_tree_nominal = ['nominal_Loose']
 m_tree_sys     = []
 
 ## weight systematics -----------------------------------
@@ -81,6 +84,7 @@ m_btag_sys = []
 ## branch name can be something already in the tree OR
 ##   the name of a global variable computed in CalculateEventVariables 
 m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000.),
+               plotVar('HT_all', 'HT', 60, 0, 3000.),
                plotVar('m_jet_n', 'nJets', 10, 0, 10)
                ]
 
@@ -91,10 +95,11 @@ m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000.),
 #m_branchesMC = set([ 'weight_mc', 'weight_leptonSF', 'weight_bTagSF_77', 'weight_pileup'])
     
 ## normalize to this luminosity -------------------------
+## xsec in pb
 m_lumi = 1.
 
 ## file containing list of cross sections by dsid -------
-m_xsec_file_str = "/export/home/prose/2t2bAnalysis/HQTFourTopTools-2.3.37/HQTFourTopTools/scripts/histMaker/PMGXSections.txt"
+m_xsec_file_str = "/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/XSection-MC15-13TeV.data"
 
 ## file containing sum of event weights by dsid ---------
 m_sumweights_file_str = "/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/sumWeights.txt"
@@ -112,8 +117,8 @@ m_input_file_str  = "" # file name / location string
 m_file_tag_str = '' # tag information extracted from file name
 m_dsid = -1 # dataset ID
 m_isMC = True # data/MC
-m_xsec = 1. # cross section UNITS ?
-m_sumweights = 1. # sample sum of event weights
+m_xsec = 0. # cross section UNITS ?
+m_sumweights = 0. # sample sum of event weights
 m_sample_name = "" # sample name
 m_sample_cat = "" # sample category -- signal, background, data
 m_sample_sys = 'nominal' # sample systematic
@@ -123,6 +128,7 @@ m_isttbar = False
 ## selection cuts ---------------------------------------
 ## ------------------------------------------------------
 GeV             = 1000.
+invGeV          = 0.001
 m_WP            = '77'
 m_cut_btag      = -0.4434 
 m_cut_jet_pt    = 30. * GeV
@@ -147,6 +153,7 @@ m_rcjet_n = -1
 
 def main(argv):
     global m_isttbar
+    global m_sample_name
 
     # get input_file, sumweights_file, xsec_file, lumi
     ParseCommandLineArguments(argv)
@@ -159,17 +166,18 @@ def main(argv):
 
     # get metadata frm the TFile
     GetFileMetaData(in_tFile)
+    # ttbar handled special
+    m_isttbar = (m_sample_name == 'ttbar')
 
-    
     # make output file(s)
-    output_file_str = 'output_' + str(m_dsid) + '_' + m_file_tag_str + '_' + m_input_file_str.split('._')[1]
+    output_file_str = m_sample_name + 'output_' + str(m_dsid) + '_' + m_file_tag_str + '_' + m_input_file_str.split('._')[1]
     print "Writing histograms to output file:", output_file_str
     if not m_isttbar:
         out_tFile = ROOT.TFile(output_file_str, 'RECREATE')
     else:
-        out_tFile_l = ROOT.TFile('ttl' + output_file_str, 'RECREATE')
-        out_tFile_c = ROOT.TFile('ttc' + output_file_str, 'RECREATE')
-        out_tFile_b = ROOT.TFile('ttb' + output_file_str, 'RECREATE')
+        out_tFile_l = ROOT.TFile('ttl_' + output_file_str, 'RECREATE')
+        out_tFile_c = ROOT.TFile('ttc_' + output_file_str, 'RECREATE')
+        out_tFile_b = ROOT.TFile('ttb_' + output_file_str, 'RECREATE')
 
     # cd back to input file
     in_tFile.cd()
@@ -196,7 +204,7 @@ def main(argv):
     # -------------
     for iTree in tree_all:
         # do not analyze systematic trees for systematic samples
-        if iTree in m_tree_sys and m_sample_sys != m_tree_nominal[0]:
+        if iTree in m_tree_sys and m_sample_sys != 'nominal':
             continue
 
         # get the TTree
@@ -237,7 +245,7 @@ def main(argv):
                     hist.Write()
                     hist.Delete()
                 else:
-                    sys.exit("ERROR :: ttbar hist not properly categorized")
+                    sys.exit("ERROR : ttbar hist not properly categorized")
             in_tFile.cd
 
     # close the input and output files
@@ -303,7 +311,7 @@ def AnalyzeTree(t):
             weight_lepton_SF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
                                 t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
 
-        if tree_name == 'nominal':
+        if tree_name == m_tree_nominal[0]:
             if m_sample_sys == 'nominal':
                 if m_isMC:
                     # for nominal tree, nominal sample_sys, MC, fill all event weights
@@ -313,17 +321,17 @@ def AnalyzeTree(t):
                     weight_dict['nominal'] = 1
             else:
                 # for sys samples, use nominal weights, but label hists by the sample_sys
-                weight_dict[sample_sys] = ( m_xsec * m_lumi * t.weight_mc *
-                                          t.weight_leptonSF / m_sumweights)
+                weight_dict[m_sample_sys] = ( m_xsec * m_lumi * t.weight_mc *
+                                              t.weight_leptonSF / m_sumweights)
                 if not m_doTRF:
                     weight_dict[sample_sys] = weight_dict[sample_sys] * getattr(t, 'weight_bTagSF_' + m_WP)
         else:
             # for systematic tree, use nominal weights, but label hists by the tree_sys
-            weight_dict[tree_name] = ( m_xsec * m_lumi * t.weight_mc *
-                                       t.weight_leptonSF / m_sumweights)
+            weight_dict[tree_name.replace('_Loose','')] = ( m_xsec * m_lumi * t.weight_mc *
+                                                            t.weight_leptonSF / m_sumweights)
 
             if not m_doTRF:
-                weight_dict[tree_name] = weight_dict[tree_name] * getattr(t, 'weight_bTagSF_' + m_WP)
+                weight_dict[tree_name.replace('_Loose','')] = weight_dict[tree_name.replace('_Loose','')] * getattr(t, 'weight_bTagSF_' + m_WP)
 
         ## create and/or fill histograms
         ## -------------------------------------------------------------
@@ -533,7 +541,7 @@ def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
     except:
         val = globals()[plot_var.branch_name]
     if any(a in plot_var.branch_name for a in ['Meff']):
-        val = val / 1000.
+        val = val / GeV
     if type(val) in [float, int]:
         val = [val]
     for iCat in event_cat_dict:
@@ -628,6 +636,15 @@ def FillEventWeightDict(tree):
                 weight_dict[iW] = wBase * wPU * wLSF * getattr(tree, iW)
     return weight_dict
 
+def ApplyVetoForFilteredSamples(tree, dsid):
+    
+    if (dsid == 410000):
+        if tree.HT_truth > 1000*GeV:
+            return False
+
+    return True
+
+
 def ParseCommandLineArguments(argv):
     global m_input_file_str
     global m_xsec_file_str
@@ -641,7 +658,7 @@ def ParseCommandLineArguments(argv):
     try:
         opts, args = getopt.gnu_getopt(argv, _short_options, _long_options)
     except getopt.GetoptError:
-        print 'getopt.GetoptError\n'
+        print 'ERROR : getopt.GetoptError\n'
         print __doc__
         sys.exit(2)
     for opt, val in opts:
@@ -661,11 +678,11 @@ def ParseCommandLineArguments(argv):
 
     # check that we have everything
     if not os.path.isfile(m_input_file_str):
-        sys.exit("Error : please enter a valid input file with '-f <input_file>' option")
+        sys.exit("ERROR : please enter a valid input file with '-f <input_file>' option")
     if not os.path.isfile(m_xsec_file_str):
-        sys.exit("Error : please enter a valid xsec file with '-x <sec_file>' option")
+        sys.exit("ERROR : please enter a valid xsec file with '-x <sec_file>' option")
     if not os.path.isfile(m_sumweights_file_str):
-        sys.exit("Error : please enter a valid sumweights file with '-s <sumweights_file>' option")
+        sys.exit("ERROR : please enter a valid sumweights file with '-s <sumweights_file>' option")
 
     print "\nINFO : Summary of configuration for this run --"
     print "       Input file      :", m_input_file_str
@@ -686,7 +703,7 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
     global m_dsid
     m_dsid = GetDSIDFromSumWeightsTree(root_file)
     if m_dsid < 0:
-        sys.exit("Error : Could not get dsid for this sample")
+        sys.exit("ERROR : Could not get dsid for this sample")
 
     print "       DSID        :", m_dsid
 
@@ -700,7 +717,7 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
     global m_file_tag_str
     m_file_tag_str = GetTagFromFileName(m_input_file_str)
     if not m_file_tag_str:
-        sys.exit("Error : could not determine file tag from file name: " + m_input_file_str)
+        sys.exit("ERROR : could not determine file tag from file name: " + m_input_file_str)
 
     # MC only -------------------------------------------------------
     if m_isMC:
@@ -708,7 +725,7 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
         global m_xsec
         m_xsec = GetXSecFromFile(m_dsid, m_xsec_file_str)
         if m_xsec < 0:
-            sys.exit("Error : Could not get xsec for this sample")
+            sys.exit("ERROR : Could not get xsec for this sample")
 
         print "       XSec        :", m_xsec
 
@@ -716,14 +733,16 @@ def GetFileMetaData(root_file): # root_file is an opened TFile
         global m_sumweights
         m_sumweights = GetSumWeightsFromFile(m_dsid, m_file_tag_str, m_sumweights_file_str)
         if m_sumweights < 0:
-            sys.exit("Error : Could not get sumweights for this sample")
+            sys.exit("ERROR : Could not get sumweights for this sample")
 
         print "       SumWeights  :", m_sumweights
 
     # sample name, file systematic
+    global m_sample_name
+    global m_sample_sys
     m_sample_name, m_sample_sys = GetSampleNameAndSysFromDSIDAndTag(m_dsid, m_file_tag_str)
     if not m_sample_name:
-        sys.exit("Error : Could not determine the sample name for dsid " + str(dsid)
+        sys.exit("ERROR : Could not determine the sample name for dsid " + str(m_dsid)
                  + " and tag " + m_file_tag_str)
 
     print "       Sample name :", m_sample_name
@@ -756,8 +775,10 @@ def GetXSecFromFile(dsid, xsec_file):
     for line in f:
         if line.startswith('#'):
             continue
+        if len(line.split()) < 3:
+            continue
         if int(line.split()[0]) == dsid:
-            xsec = float(line.split()[6])
+            xsec = float(line.split()[1]) * float(line.split()[2])
             foundXsec = True
             break
     f.close()
@@ -785,6 +806,16 @@ def GetSumWeightsFromFile(dsid, file_tag, sumweights_file):
         f.close()
     return sumweights
 
+
+
+
+if __name__ == "__main__" : main(sys.argv)
+
+
+
+
+
+"""
 def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
     sample_name = ''
     sample_sys  = 'nominal'
@@ -877,6 +908,4 @@ def GetSampleNameAndSysFromDSIDAndTag(dsid, file_tag_str):
         m_isttbar = True
         
     return sample_name, sample_sys
-
-
-if __name__ == "__main__" : main(sys.argv)
+"""

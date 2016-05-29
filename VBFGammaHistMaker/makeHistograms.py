@@ -61,11 +61,11 @@ m_tree_sys     = ['EG_RESOLUTION_ALL__1down', 'EG_RESOLUTION_ALL__1up',
 m_weight_sys   = ['weight_pileup_UP']
 
 #testing
-m_tree_sys = []
+m_tree_sys = ['JET_JER_SINGLE_NP__1up','EG_RESOLUTION_ALL__1down','EG_RESOLUTION_ALL__1up']
 m_weight_sys = []
 
 ## variables to plot ------------------------------------
-m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 100, 0, 1000*1000.)]
+m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 22, 40*1000., 260*1000.)]
 
 ## branches needed --------------------------------------
 m_branches = set(['mBB_Regression', 'MV2c20B1', 'MV2c20B2', 'nJ', 'pTBB', 'MCWeight', 
@@ -126,7 +126,11 @@ def main(argv):
         
     print "Writing histograms to output file:", output_file_str
     out_tFile = ROOT.TFile(output_file_str, 'RECREATE')
-
+    out_tFile.cd()
+    d = out_tFile.mkdir('Systematics')
+    #cdtof = top->mkdir("tof")
+    #d = ROOT.TDirectory('Systematics', 'Systematics')
+    #d.SetMother(out_tFile)
     # cd back to input file
     in_tFile.cd()
 
@@ -157,8 +161,11 @@ def main(argv):
         ## save to file and clear hist_dict
         out_tFile.cd()
         for iH in hist_dict:
+            if '_Sys' in hist_dict[iH].GetName():
+                d.cd()
             hist_dict[iH].Write()
             hist_dict[iH].Delete()
+            out_tFile.cd()
         in_tFile.cd()
 
     # close the input and output files
@@ -230,9 +237,10 @@ def AnalyzeTree(t):
     
         else:
             # for systematic tree, use nominal weights, but label hists by the tree_sys
-            weight_dict[tree_name] = ( m_xsec * m_lumi * t.weight_mc *
-                                       t.weight_leptonSF *
-                                       t.weight_bTagSF_77 / m_sumweights)
+            weight_dict[tree_name] =  m_xsec * m_lumi * t.MCWeight / m_sumweights
+            #weight_dict[tree_name] = ( m_xsec * m_lumi * t.weight_mc *
+            #                           t.weight_leptonSF *
+            #                           t.weight_bTagSF_77 / m_sumweights)
 
         ## create and/or fill histograms
         ## -------------------------------------------------------------
@@ -267,6 +275,9 @@ def DoPreSelection(t):
     if not t.BDT > 0:
         return False
 
+    if not t.pTBB > 100000.:
+        return False
+
     """
 
     if not t.pTJ1 > 60000.:
@@ -298,12 +309,19 @@ def GetEventCategories(tree):
     if n_jet >=4:
         n_jet = '4p'
 
+    """
     pt_bb = tree.pTBB
     if pt_bb > 100000.:
         pt_bb = '100'
     else:
         pt_bb = '0'
-
+    """
+    pt_bb = tree.BDT
+    if pt_bb > 0.1:
+        pt_bb = '1'
+    else:
+        pt_bb = '0'
+    
     reg = ''
     
     reg = "mBBcr"
@@ -345,7 +363,9 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
         val = [val]
     for iCat in event_cat_list:
         for iSys in weight_dict:
-            h_name = m_sample_name + '_' + iCat + '_' + plot_var.title + (iSys != m_tree_nominal[0]) * ('_' + iSys)
+            h_name = m_sample_name + '_' + iCat + '_' + plot_var.title + (iSys != m_tree_nominal[0]) * ('_Sys' + iSys)
+            #if (iSys != m_tree_nominal[0]):
+            #    h_name = 'Systematics/' + h_name
             h = hist_dict.get(h_name, '')
             if not h:
                 h = ROOT.TH1F(h_name, h_name, plot_var.nbinsx, plot_var.xlow, plot_var.xup)
@@ -358,7 +378,7 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
             h = hist_dict[h_name]
             # now that it is made, fill
             for iVal in val:
-                print "Filling hist with value:", iVal, "weight:", weight_dict[iSys], 'for sample', m_sample_name
+                #print "Filling hist with value:", iVal, "weight:", weight_dict[iSys], 'for sample', m_sample_name
                 #print "Weight sys / value:", iSys, weight_dict[iSys]
                 h.Fill(iVal, weight_dict[iSys])
 

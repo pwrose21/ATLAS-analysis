@@ -59,10 +59,16 @@ for iDir in fileDirs:
     status, files = commands.getstatusoutput("ls " + dsDir + iDir)
     files = files.split('\n')
     for iFile in files:
+        if not iFile:
+            continue
+        if 'part' in iFile:
+            continue
         newSample = True
         fileSumWeights = 0
         f = ROOT.TFile(dsDir + iDir + '/' + iFile)
         t = f.Get('sumWeights')
+        if not t:
+            continue
         for iEvt in t:
             if int(iEvt.dsid) != int(dsid):
                 print "ERROR : Mismatch in dsid between sample name and tree. Investigate!"
