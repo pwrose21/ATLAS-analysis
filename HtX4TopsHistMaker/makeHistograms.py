@@ -86,8 +86,16 @@ m_btag_sys = []
 ##   the name of a global variable computed in CalculateEventVariables 
 m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000., 'GeV'),
                plotVar('m_btagjet_n', 'nBTags', 10, 0, 10),
-               #plotVar('HT_all', 'HT', 60, 0, 3000., 'GeV'),
-               #plotVar('m_jet_n', 'nJets', 10, 0, 10, '')
+               plotVar('m_jet_n', 'nJets', 10, 0, 10, ''),
+               plotVar('m_rcjet_n', 'nHOTJets', 5, 0, 5, ''),
+               plotVar('m_el_n', 'nElectrons', 2, 0, 2, ''),
+               plotVar('m_mu_n', 'nMuons', 2, 0, 2, ''),
+               plotVar('m_el_pt', 'pTEl', 50, 0, 500, 'GeV'),
+               plotVar('m_mu_pt', 'pTMu', 50, 0, 500, 'GeV'),
+               plotVar('m_btagjet_pt', 'pTBTagJets', 50, 0, 500, 'GeV'),
+               plotVar('m_jet_pt', 'pTJets', 50, 0, 500, 'GeV'),
+               plotVar('m_rcjet_pt', 'pTHOTJets', 50, 0, 1000, 'GeV'),
+               plotVar('m_mbb_mindr', 'mBBMindR', 50, 0, 300, 'GeV'),
                ]
 
 ## branches needed --------------------------------------
@@ -132,7 +140,7 @@ GeV             = 1000.
 invGeV          = 0.001
 m_WP            = '77'
 m_cut_btag      = -0.4434 
-m_cut_jet_pt    = 30. * GeV
+m_cut_jet_pt    = 25. * GeV
 m_cut_jet_eta   = 2.5
 m_cut_lep_pt    = 30. * GeV
 m_cut_lep_eta   = 2.5
@@ -152,12 +160,16 @@ m_rcjet_n     = -1
 m_hotjet_n    = -1
 m_toptagjet_n = -1
 
+m_el_pt = -1
+m_mu_pt = -1
+m_jet_pt = []
+m_rcjet_pt = []
 
 m_btag_vars = ['m_mbb_mindr', 'm_btagjet_pt', 'm_btagjet_eta', 'm_btagjet_n']
 m_mbb_mindr   = []
 m_btagjet_pt  = []
 m_btagjet_eta = []
-m_btagjet_n   = ['','','']
+m_btagjet_n   = []
 
 
 def main(argv):
@@ -330,12 +342,12 @@ def AnalyzeTree(t):
         # reweight VLQ samples according to decay type
         # right now returns 1
         weight_vlq = GetVLQDecayWeight(t)
-        print 'weight_vlq', weight_vlq
+        #print 'weight_vlq', weight_vlq
 
         weight_nominal = (m_xsec * m_lumi * t.weight_mc * weight_lepton_SF * 
                           t.weight_pileup * weight_vlq / m_sumweights)
-        print 'weight_pileup', t.weight_pileup
-        print 'weight_nominal', weight_nominal
+        #print 'weight_pileup', t.weight_pileup
+        #print 'weight_nominal', weight_nominal
 
 
         if tree_name == m_tree_nominal[0]:
@@ -355,9 +367,10 @@ def AnalyzeTree(t):
 
         ## create and/or fill histograms
         ## -------------------------------------------------------------
+        print "Filling hists!"
         for iVar in m_plot_vars:
             FillHists(t, iVar, event_cat_dict, weight_dict, hist_dict)
-        
+        print "End fill!"
         ## ========================================================== ##
         ## ========================== end =========================== ##
         ## ========================================================== ##
@@ -370,10 +383,9 @@ def CalculateEventVariables(tree):
 
     ## number of jets / bjets
     global m_jet_n
-    #global m_btagjet_n
+    global m_jet_pt
     m_jet_n  = 0
-    #m_btagjet_n = 0
-
+    m_jet_pt = []
     jet_pt     = tree.jet_pt
     jet_eta    = tree.jet_eta
     jet_mv2c20 = tree.jet_mv2c20
@@ -381,15 +393,15 @@ def CalculateEventVariables(tree):
         if ( jet_pt[i] > m_cut_jet_pt and
              abs(jet_eta[i]) < m_cut_jet_eta):
             m_jet_n = m_jet_n + 1
-            #if jet_mv2c20[i] > m_cut_btag:
-            #    m_btagjet_n = m_btagjet_n + 1
-
+            m_jet_pt.append(jet_pt[i])
     ## number of leptons
     global m_lep_n
     m_lep_n = 0
     
     global m_el_n
+    global m_el_pt
     m_el_n = 0
+    m_el_pt = []
     el_pt = tree.el_pt
     el_eta = tree.el_eta
     for i in xrange(len(el_pt)):
@@ -397,9 +409,12 @@ def CalculateEventVariables(tree):
              abs(el_eta[i]) < m_cut_lep_eta ):
             m_el_n = m_el_n + 1
             m_lep_n = m_lep_n + 1
+            m_el_pt.append(el_pt[i])
 
     global m_mu_n
+    global m_mu_pt
     m_mu_n = 0
+    m_mu_pt = []
     mu_pt = tree.mu_pt
     mu_eta = tree.mu_eta
     for i in xrange(len(mu_pt)):
@@ -407,10 +422,13 @@ def CalculateEventVariables(tree):
              abs(mu_eta[i]) < m_cut_lep_eta):
             m_mu_n = m_mu_n + 1
             m_lep_n = m_lep_n + 1
-    
+            m_mu_pt.append(mu_pt[i])
+
     ## number of mass-tagged rc jets
     global m_rcjet_n
+    global m_rcjet_pt
     m_rcjet_n = 0
+    m_rcjet_pt = []
     rcjet_pt  = tree.reclustered_jets_pt
     rcjet_eta = tree.reclustered_jets_eta
     rcjet_m   = tree.reclustered_jets_m
@@ -420,7 +438,48 @@ def CalculateEventVariables(tree):
              abs(rcjet_eta[i]) < m_cut_rcjet_eta and
              rcjet_m[i] > m_cut_rcjet_m  and rcjet_nsub[i]>=m_cut_rcjet_nsub):
             m_rcjet_n = m_rcjet_n + 1
+            m_rcjet_pt.append(rcjet_pt[i])
 
+def CalculateBTagVars(tree, doTRF):
+    global m_btagjet_n
+    global m_btagjet_pt
+    global m_mbb_mindr
+
+    m_btagjet_n = []
+    m_btagjet_pt = []
+    m_mbb_mindr = []
+
+    if not doTRF:
+        btag_jets = GetListOfBTagJets(tree, '')
+        m_btagjet_n = len(btag_jets)
+        for i in btag_jets:
+            m_btagjet_pt.append(i.Pt())
+        mbb = 0
+        mindr = 200
+        for i in range(0, len(btag_jets)-1):
+            for j in range(i+1, len(btag_jets)):
+                if btag_jets[i].DeltaR(btag_jets[j]) < mindr :
+                    mindr = btag_jets[i].DeltaR(btag_jets[j])
+                    mbb = (btag_jets[i] + btag_jets[j]).M()
+        m_mbb_mindr = mbb
+    else:
+        m_btagjet_n = ['','','']
+        m_btagjet_pt = [[],[],[]]
+        m_mbb_mindr  = ['','','']
+        for i,cat in enumerate(['2ex', '3ex', '4in']):
+            btag_jets = GetListOfBTagJets(tree, cat)
+            m_btagjet_n[i] = len(btag_jets)
+            for j in btag_jets:
+                m_btagjet_pt[i].append(j.Pt())
+
+            mbb = 0
+            mindr = 200
+            for j in range(0, len(btag_jets)-1):
+                for k in range(j+1, len(btag_jets)):
+                    if btag_jets[j].DeltaR(btag_jets[k]) < mindr :
+                        mindr = btag_jets[j].DeltaR(btag_jets[k])
+                        mbb = (btag_jets[j] + btag_jets[k]).M()
+            m_mbb_mindr[i] = mbb
 
 
 def GetListOfBTagJets(tree, trf_cat):
@@ -434,7 +493,9 @@ def GetListOfBTagJets(tree, trf_cat):
     if trf_cat == '2ex' or trf_cat == '3ex' or trf_cat == '4in':
         jet_istagged = getattr(tree, 'trf_tagged_' + m_WP + '_' + trf_cat)
         for i in range(len(jet_istagged)):
-            if jet_istagged[i]:
+            if (jet_istagged[i] and 
+                jet_pt[i] > m_cut_jet_pt and
+                abs(jet_eta[i]) < m_cut_jet_eta):
                 tlv = ROOT.TLorentzVector(0,0,0,0)
                 tlv.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
                 btag_jets.append(tlv)
@@ -442,24 +503,14 @@ def GetListOfBTagJets(tree, trf_cat):
     else:
         jet_mv2c20 = tree.jet_mv2c20
         for i in range(len(jet_mv2c20)):
-            if jet_mv2c20[i] > m_cut_btag:
+            if (jet_mv2c20[i] > m_cut_btag and 
+                jet_pt[i] > m_cut_jet_pt and
+                abs(jet_eta[i]) < m_cut_jet_eta):
                 tlv = ROOT.TLorentzVector(0,0,0,0)
                 tlv.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
                 btag_jets.append(tlv)
 
     return btag_jets
-
-def CalculateBTagVars(tree, doTRF):
-    global m_btagjet_n
-
-    if not doTRF:
-        btag_jets = GetListOfBTagJets(tree, '')
-        m_btagjet_n = len(btag_jets)
-
-    else:
-        for i,cat in enumerate(['2ex', '3ex', '4in']):
-            btag_jets = GetListOfBTagJets(tree, cat)
-            m_btagjet_n[i] = len(btag_jets)
 
 
 def DoPreSelection(tree):
@@ -519,7 +570,7 @@ def GetEventCategories(tree):
             event_cat = event_cat + mbb_cat
             #print event_cat
         event_cat_dict[event_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
-        event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
+        #event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
 
     # do trf, use all categories
     else:
@@ -532,7 +583,7 @@ def GetEventCategories(tree):
                 event_cat = event_cat + mbb_cat
                 #print event_cat
             event_cat_dict[event_cat] = getattr(tree, br)
-            event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, br)
+            #event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, br)
     
     return event_cat_dict
 
@@ -548,12 +599,16 @@ def getMbbCat(tree, tagCut):
     mindR = 200
 
     for i in range(0, len(jet_pt)-1):
-        if not jet_mv2c20[i] > tagCut:
+        if not (jet_mv2c20[i] > tagCut and
+                jet_pt[i] > m_cut_jet_pt and
+                abs(jet_eta[i]) < m_cut_jet_eta):
             continue
         tlv1 = ROOT.TLorentzVector(0,0,0,0)
         tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
         for j in range(i+1, len(jet_pt)):
-            if not jet_mv2c20[j] > tagCut:
+            if not (jet_mv2c20[j] > tagCut and
+                    jet_pt[j] > m_cut_jet_pt and
+                    abs(jet_eta[j]) < m_cut_jet_eta):
                 continue
             tlv2 = ROOT.TLorentzVector(0,0,0,0)
             tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], 0)
@@ -586,12 +641,16 @@ def getMbbCatTRF(tree, ntagstr, WP):
     mBB = 0
     mindR = 20
     for i in range(0, len(jet_pt)-1):
-        if not jet_isTagged[i]:
+        if not (jet_isTagged[i] and
+                jet_pt[i] > m_cut_jet_pt and
+                abs(jet_eta[i]) < m_cut_jet_eta):
             continue
         tlv1 = ROOT.TLorentzVector(0,0,0,0)
         tlv1.SetPtEtaPhiM(jet_pt[i], jet_eta[i], jet_phi[i], 0)
         for j in range(i+1, len(jet_pt)):
-            if not jet_isTagged[j]:
+            if not (jet_isTagged[j] and
+                    jet_pt[j] > m_cut_jet_pt and
+                    abs(jet_eta[j]) < m_cut_jet_eta):
                 continue
             tlv2 = ROOT.TLorentzVector(0,0,0,0)
             tlv2.SetPtEtaPhiM(jet_pt[j], jet_eta[j], jet_phi[j], 0)
@@ -605,6 +664,7 @@ def getMbbCatTRF(tree, ntagstr, WP):
     return "LowMbb"
 
 def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
+    print event_cat_dict
     for iCat in event_cat_dict:
 
         # sample values for all systematics
@@ -621,8 +681,6 @@ def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
             if '4b' in iCat:
                 val = val[2]
 
-        if plot_var.units == 'GeV':
-            val = val / GeV
         if type(val) in [float, int]:
             val = [val]
 
@@ -644,9 +702,11 @@ def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
             h = hist_dict[h_name]
             # now that it is made, fill
             for iVal in val:
-                print iSys
-                print 'weight_dict_weight:', weight_dict[iSys]
-                print 'event_cat_weight', event_cat_dict[iCat]
+                if plot_var.units == 'GeV':
+                    iVal = iVal * invGeV
+                #print iSys
+                #print 'weight_dict_weight:', weight_dict[iSys]
+                #print 'event_cat_weight', event_cat_dict[iCat]
                 h.Fill(iVal, weight_dict[iSys] * event_cat_dict[iCat])
 
 def GetStandardSysName(systematic_name):
