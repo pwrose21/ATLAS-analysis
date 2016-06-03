@@ -12,9 +12,18 @@ import math
 
 doSysts = False
 logPlots = True
-histMarginFact = 1.5
-signal_names = ['UED1400']
-signal_draw_names = ['UED1400']
+histMarginFact = 1.7
+signal_names = ['ued', 'tts', 'ttd', 'bbs', 'bbd', 'xx', 'yy', 'fourtopCI']
+background_names = ['ttb', 'ttc', 'ttl', 'singletop', 'ttW', 'ttZ', 'fourtopSM', 
+                    'ttWW', 'ttee', 'ttmumu', 'tttautau', 'ttH', 'wjets-sherpa21',
+                    'zjets-sherpa21', 'diboson']
+excluded_names = ['zjets-sherpa22', 'wjets-sherpa22']
+ 
+signal_draw_names = ['ued1000', 'ued1400']
+#signal_draw_names = []
+
+m_lumiFact = 3200.
+
 
 ## /////////// ##
 ## atlas style ##
@@ -42,7 +51,7 @@ def main(argv):
 
     # Get list of regions
     m_regions = GetListOfRegions(m_files)
-
+    m_regions = set(m_regions)
     # canvas containing two pads
     # p1 for the stack histogram and signals and data
     # p2 for data / mc
@@ -52,20 +61,22 @@ def main(argv):
     # one region at a time
     for iReg in m_regions:
         ##testing
-        if not iReg == 'c1l1TTRCLooser6j4b_meff':
+        if not iReg == 'c1l1TTRCLooser6j2b_meff':
             continue
         ##-------
 
         # m_hists[sample] = TH1F
         m_hists  = GetHistsFromFiles(m_files, iReg)
+        ScaleHistsByFactor(m_hists, m_lumiFact)
+        SetLastBinToOverflow(m_hists)
         m_hstack = MakeStackHist(m_hists, iReg)
         m_hratio = ''
         m_legend = MakeLegend(m_hists)
  
         if m_hists.get('data', '') and m_hists.get('background', ''):
             # testing
-            m_hists['data'].Scale(1.5*4)
-            m_hists['background'].Scale(4)
+            #m_hists['data'].Scale(1.5*4)
+            #m_hists['background'].Scale(4)
             m_hratio = MakeDataOverBkgdHist(m_hists)
 
         ## -- plotting -- ##
@@ -97,13 +108,20 @@ def FindXForLabels(hist):
     maxX = nbins / 2
 """ 
 
+def SetLastBinToOverflow(hists):
+    for iH in hists:
+        h = hists[iH]
+        nbins = h.GetNbinsX()
+        h.SetBinContent(nbins, h.GetBinContent(nbins) + h.GetBinContent(nbins+1))
+        h.SetBinContent(nbins+1, 0)
+
 def MakeLegend(hists):
 
     ## --need to sort again to get same order as added-- ##
     sortedHistTuple = sorted(hists.items(),
                              key=lambda x: x[1].GetBinContent(x[1].GetMaximumBin()))
 
-    l = ROOT.TLegend(0.2, 0.6, 0.4, 0.8)
+    l = ROOT.TLegend(0.2, 0.65, 0.4, 0.9)
     for iHTuple in sortedHistTuple:
         if not SampleExcludedFromStack(iHTuple[0]):
             l.AddEntry(iHTuple[1], iHTuple[0], 'f')
@@ -144,7 +162,15 @@ def DrawPlotsToUpperPad(hists, stackHist, region):
     bkgdHist.Draw()
     stackHist.Draw("HISTsame")
 
-    hists['data'].Draw("same")
+    #hists['data'].SetMarkerSize(1.2)
+    #hists['data'].SetMarkerStyle(20)
+
+    for iH in hists:
+        if iH in signal_draw_names:
+            PrepHistForLineDraw(hists[iH])
+            hists[iH].Draw("same")
+
+    hists['data'].Draw("psame")
     bkgdHist.Draw("axissame")
 
 def GetSmallestBinValAboveZero(hist):
@@ -215,6 +241,9 @@ def MakeDataOverBkgdHist(hists):
     ratioHist.GetYaxis().SetTitleOffset(ratioHist.GetYaxis().GetTitleOffset()*0.3/0.7)
     ratioHist.GetYaxis().SetNdivisions(506)
 
+    print ratioHist.GetMarkerSize()
+    print ratioHist.GetMarkerStyle()
+
     return ratioHist
 
 def MakeStackHist(hists, region):
@@ -234,7 +263,11 @@ def MakeStackHist(hists, region):
     
     return hs
         
-
+def ScaleHistsByFactor(hists, factor):
+    for iH in hists:
+        if iH == 'data':
+            continue
+        hists[iH].Scale(factor)
 
 def GetHistsFromFiles(file_list, region):
     hists = {}
@@ -243,17 +276,28 @@ def GetHistsFromFiles(file_list, region):
         # get the sample type
         # a given sample might have 2 types e.g. ttbar is also bkgd
         sample_type_list = GetSampleTypesFromFileName(iFile)
+        hist_from_file = f.Get(region)
+        # -- protection -- #
+        isTH1 = True
+        try: isTH1 = 'TH1' in hist_from_file.ClassName()
+        except:
+            isTH1 = False
+        if not isTH1:
+            f.Close()
+            continue
+        print hist_from_file
+        ## -- end of protection -- #
+        hist_from_file.SetDirectory(0)
         for iSample in sample_type_list:
             # try to retrieve the hist from the dict
             hist_from_dict = hists.get(iSample, '')
             # if it already exists, add the contribution from this file
             if hist_from_dict:
-                hist_from_dict.Add(f.Get(region))
+                hist_from_dict.Add(hist_from_file)
             # otherwise, we need to add it to the dict
             else:
-                h = f.Get(region)
-                h.SetDirectory(0)
-                hists[iSample] = h
+                hists[iSample] = copy.deepcopy(hist_from_file)
+                hists[iSample].SetDirectory(0)
         f.Close()
     return hists
 
@@ -318,11 +362,11 @@ def PrepHistForLineDraw(hist):
 #------------------------------------------------------------------------
 
 def GetHistSampleColor(sample):
-    if sample == 'tt+bb':
+    if sample == 'ttb':
         return ROOT.kBlue
-    if sample == 'tt+cc':
+    if sample == 'ttc':
         return ROOT.kRed
-    if sample == 'tt+light':
+    if sample == 'ttl':
         return ROOT.kCyan
     if sample == 'others':
         return ROOT.kGreen
@@ -333,12 +377,15 @@ def GetHistSampleColor(sample):
 
 def SampleExcludedFromStack(name):
     global signal_names
+    global excluded_names
 
     names = ['signal', 'background', 'data']
     ## exclude
     if any(a==name for a in names):
         return True
-    if any(a==name for a in signal_names):
+    if any(a in name for a in signal_names):
+        return True
+    if any(a==name for a in excluded_names):
         return True
 
     ## otherwise include
@@ -409,17 +456,16 @@ def UpdateHistDictFromFile(file_name_str, histDict):
 def GetSampleTypesFromFileName(file_name_str):
     sample_types = []
 
-    if 'UED' in file_name_str:
-        if '1400' in file_name_str:
-            sample_types.append('UED1400')
+    sample = file_name_str.replace('.root', '').split('/')[-1]
+    if sample in background_names:
+        sample_types.append('background')
+        if sample in ['ttl', 'ttb', 'ttc']:
+            sample_types.append(sample)
+        else:
+            sample_types.append('others')
 
-    sample_types.append('tt+bb')
-    sample_types.append('tt+cc')
-    sample_types.append('tt+light')
-    sample_types.append('others')
-    sample_types.append('signal')
-    sample_types.append('background')
-    sample_types.append('data')
+    else:
+        sample_types.append(sample)
 
     return sample_types
 

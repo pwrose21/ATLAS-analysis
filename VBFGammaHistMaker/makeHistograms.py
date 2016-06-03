@@ -62,10 +62,12 @@ m_weight_sys   = ['weight_pileup_UP']
 
 #testing
 m_tree_sys = ['JET_JER_SINGLE_NP__1up','EG_RESOLUTION_ALL__1down','EG_RESOLUTION_ALL__1up']
+m_tree_sys = []
 m_weight_sys = []
 
 ## variables to plot ------------------------------------
-m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 22, 40*1000., 260*1000.)]
+#m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 22, 40*1000., 260*1000.)]
+m_plot_vars = [plotVar('mBB_PtRecollbbOneMuPartonBukinNew', 'mBBReg', 22, 40*1000., 260*1000.)]
 
 ## branches needed --------------------------------------
 m_branches = set(['mBB_Regression', 'MV2c20B1', 'MV2c20B2', 'nJ', 'pTBB', 'MCWeight', 
@@ -163,6 +165,7 @@ def main(argv):
         for iH in hist_dict:
             if '_Sys' in hist_dict[iH].GetName():
                 d.cd()
+            SetBinErrors(hist_dict[iH],0.3)
             hist_dict[iH].Write()
             hist_dict[iH].Delete()
             out_tFile.cd()
@@ -171,6 +174,11 @@ def main(argv):
     # close the input and output files
     in_tFile.Close()
     out_tFile.Close()
+
+
+def SetBinErrors(h, frac):
+    for i in range(1, h.GetNbinsX()+1):
+        h.SetBinError(i, h.GetBinContent(i)*frac)
 
 
 def AnalyzeTree(t):
@@ -269,21 +277,23 @@ def DoPreSelection(t):
     if not t.nJ >= 4:
         return False
 
-    if not t.pTPh > 30000.:
+    if not t.pTPh > 26000.:
         return False
 
-    if not t.BDT > 0:
-        return False
+    #if not t.BDT > 0:
+    #    return False
 
     if not t.pTBB > 100000.:
         return False
 
-    """
+    
 
-    if not t.pTJ1 > 60000.:
+    if not t.pTJ2 > 40000.:
         return False
-    if not t.pTB1 > 60000.:
+    if not t.pTB2 > 40000.:
         return False
+
+    """
     if not t.dEtaJJ > 4.:
         return False
 
@@ -325,7 +335,7 @@ def GetEventCategories(tree):
     reg = ''
     
     reg = "mBBcr"
-    if n_tag == 2 and tree.mBB_Regression > 110000. and tree.mBB_Regression < 140000.:
+    if n_tag == 2 and tree.mBB_PtRecollbbOneMuPartonBukinNew > 110000. and tree.mBB_PtRecollbbOneMuPartonBukinNew < 140000.:
         #round to binning#tree.mBB_Regression > 112500. and tree.mBB_Regression < 137500.:
         reg = "SR"
     
@@ -337,7 +347,7 @@ def GetEventCategories(tree):
 
     ## Z CR
     reg = "mBBcrZ"
-    if n_tag ==2 and tree.mBB_Regression > 80000. and tree.mBB_Regression < 100000.:
+    if n_tag ==2 and tree.mBB_PtRecollbbOneMuPartonBukinNew > 80000. and tree.mBB_PtRecollbbOneMuPartonBukinNew < 100000.:
         # round to binning#tree.mBB_Regression > 81000. and tree.mBB_Regression < 99000.
         reg = "SRZ"
 
@@ -369,7 +379,7 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
             h = hist_dict.get(h_name, '')
             if not h:
                 h = ROOT.TH1F(h_name, h_name, plot_var.nbinsx, plot_var.xlow, plot_var.xup)
-                h.Sumw2(ROOT.kTRUE)
+                h.Sumw2(ROOT.kFALSE)
                 h.GetXaxis().SetTitle(plot_var.title + ' ' + GetUnits(plot_var.title))
                 h.GetYaxis().SetTitle("Entries / " + "{0:.1f}".format((plot_var.xup - plot_var.xlow) / plot_var.nbinsx ) 
                                       + " " + GetUnits(plot_var.title))

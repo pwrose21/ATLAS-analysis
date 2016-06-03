@@ -95,7 +95,8 @@ m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000., 'GeV'),
                plotVar('m_btagjet_pt', 'pTBTagJets', 50, 0, 500, 'GeV'),
                plotVar('m_jet_pt', 'pTJets', 50, 0, 500, 'GeV'),
                plotVar('m_rcjet_pt', 'pTHOTJets', 50, 0, 1000, 'GeV'),
-               plotVar('m_mbb_mindr', 'mBBMindR', 50, 0, 300, 'GeV'),
+               plotVar('m_mbb_mindr', 'mBBMindR', 50, 0, 500, 'GeV'),
+               plotVar('HT_truth', 'truthHT', 60, 0, 3000., 'GeV'), 
                ]
 
 ## branches needed --------------------------------------
@@ -327,28 +328,32 @@ def AnalyzeTree(t):
         ## needs to be done after pre-selection to get lepton SF correct
         ## -------------------------------------------------------------
         weight_dict = {}
-        weight_lepton_SF = 1
 
-        if m_el_n == 1:
-            weight_lepton_SF = (t.weight_indiv_SF_EL_Trigger * t.weight_indiv_SF_EL_Reco *
-                                t.weight_indiv_SF_EL_ID * t.weight_indiv_SF_EL_Isol)
-        elif m_mu_n == 1:
-            weight_lepton_SF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
-                                t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
+        weight_nominal = 1
+        if m_isMC:
+            
+            weight_lepton_SF = 1
+            
+            if m_el_n == 1:
+                weight_lepton_SF = (t.weight_indiv_SF_EL_Trigger * t.weight_indiv_SF_EL_Reco *
+                                    t.weight_indiv_SF_EL_ID * t.weight_indiv_SF_EL_Isol)
+            elif m_mu_n == 1:
+                weight_lepton_SF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
+                                    t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
 
-        else:
-            print "WARNING :: did not find 1 el or 1 mu in a 1 lep event!!"
+            else:
+                print "WARNING :: did not find 1 el or 1 mu in a 1 lep event!!"
 
         # reweight VLQ samples according to decay type
         # right now returns 1
-        weight_vlq = GetVLQDecayWeight(t)
+            weight_vlq = GetVLQDecayWeight(t)
+            weight_ttbar = GetTtbarWeight(t)
         #print 'weight_vlq', weight_vlq
-
-        weight_nominal = (m_xsec * m_lumi * t.weight_mc * weight_lepton_SF * 
-                          t.weight_pileup * weight_vlq / m_sumweights)
+            
+            weight_nominal = (m_xsec * m_lumi * t.weight_mc * weight_lepton_SF * 
+                              t.weight_pileup * weight_vlq * weight_ttbar/ m_sumweights)
         #print 'weight_pileup', t.weight_pileup
         #print 'weight_nominal', weight_nominal
-
 
         if tree_name == m_tree_nominal[0]:
             if m_sample_sys == 'nominal':
@@ -367,14 +372,26 @@ def AnalyzeTree(t):
 
         ## create and/or fill histograms
         ## -------------------------------------------------------------
-        print "Filling hists!"
+        #print "Filling hists!"
         for iVar in m_plot_vars:
             FillHists(t, iVar, event_cat_dict, weight_dict, hist_dict)
-        print "End fill!"
+        #print "End fill!"
         ## ========================================================== ##
         ## ========================== end =========================== ##
         ## ========================================================== ##
     return hist_dict
+
+def GetTtbarWeight(tree):
+    global m_isttbar
+
+    if not m_isttbar:
+        return 1.
+
+    weight_nnlo = tree.weight_ttbar_nnlo
+
+    weight_total = weight_nnlo
+
+    return weight_total
 
 def GetVLQDecayWeight(tree):
     return 1.
@@ -538,6 +555,7 @@ def DoPreSelection(tree):
 
 def GetEventCategories(tree):
     global m_isttbar
+    global m_isMC
     event_cat_dict = {} ## given event might be in more than one category
                         ## i.e. inclusive/exclusive ntag
                         ## entries are {category : trf_weight}
@@ -569,7 +587,10 @@ def GetEventCategories(tree):
             mbb_cat = getMbbCat(tree, m_cut_btag)
             event_cat = event_cat + mbb_cat
             #print event_cat
-        event_cat_dict[event_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
+        if m_isMC:
+            event_cat_dict[event_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
+        else:
+            event_cat_dict[event_cat] = 1.
         #event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
 
     # do trf, use all categories
@@ -664,7 +685,7 @@ def getMbbCatTRF(tree, ntagstr, WP):
     return "LowMbb"
 
 def FillHists(tree, plot_var, event_cat_dict, weight_dict, hist_dict):
-    print event_cat_dict
+    #print event_cat_dict
     for iCat in event_cat_dict:
 
         # sample values for all systematics
@@ -780,7 +801,7 @@ def ApplySampleSliceVeto(t):
 
     ## use HT filter for now!
     if (m_dsid == 410000):
-        if tree.HT_truth > 600*GeV:
+        if t.HT_truth > 600*GeV:
             return False
 
     ## dont use b-filtered sample

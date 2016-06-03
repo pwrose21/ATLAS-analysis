@@ -9,12 +9,36 @@ status, subDirs = commands.getstatusoutput('ls ' + input_dir)
 subDirs = subDirs.split('\n')
 
 
+"""
+rundirs = [
+    'user.farooque.410066.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410067.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410068.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410073.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4631_s2726_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410074.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4631_s2726_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410080.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    'user.farooque.410081.MadGraphPythia8EvtGen.DAOD_TOPQ1.e4111_s2608_s2183_r7326_r6282_p2516.HtX4Tops_00-00-04_V0_output.root',
+    ]
+
+rundirs = [
+    'user.prose.410000.PowhegPythiaEvtGen.DAOD_TOPQ1.e3698_s2608_s2183_r7267_r6282_p2516.HtX4Tops_00-00-06_output.root',
+    'user.prose.407009.PowhegPythiaEvtGen.DAOD_TOPQ1.e4023_s2608_r7326_r6282_p2516.HtX4Tops_00-00-06_output.root',
+    'user.prose.407010.PowhegPythiaEvtGen.DAOD_TOPQ1.e4023_s2608_r7326_r6282_p2516.HtX4Tops_00-00-06_output.root',
+    'user.prose.407011.PowhegPythiaEvtGen.DAOD_TOPQ1.e4023_s2608_r7326_r6282_p2516.HtX4Tops_00-00-06_output.root',
+    'user.prose.407012.PowhegPythiaEvtGen.DAOD_TOPQ1.e4023_s2608_r7326_r6282_p2516.HtX4Tops_00-00-06_output.root',
+    ]
+"""
+
 # -- loop subdirectories --
 for i,iDir in enumerate(subDirs):
 
     if not 'output.root' in iDir:
         continue
+
     
+    #if not iDir in rundirs:
+    #    continue
+
     #  -- arg template --
     # for 2ued, no TRF
     arg_template = ' -f %s'
@@ -22,7 +46,14 @@ for i,iDir in enumerate(subDirs):
         or 'physics_Main' in iDir):
         pass
     else:
+        #pass
         arg_template = arg_template + ' -t'
+
+    if 'TOPQ4' in iDir:
+        continue
+
+    if not 'physics_Main' in iDir:
+        continue
 
     # -- dir name --
     # separate condor dir for each sample
@@ -35,7 +66,7 @@ for i,iDir in enumerate(subDirs):
     input_files = []
     status, files = commands.getstatusoutput('ls ' + input_dir + iDir)
     files = files.split('\n')
-
+    
     for iFile in files:
         input_files.append(input_dir + iDir + '/' + iFile)
 
@@ -44,3 +75,4 @@ for i,iDir in enumerate(subDirs):
     except:
         print "Problem submitting from directory:", iDir
         print "Need to inspect files:", input_files
+    
