@@ -35,7 +35,8 @@ for i,iDir in enumerate(subDirs):
     if not 'output.root' in iDir:
         continue
 
-    
+    if not '410000' in iDir:
+        continue
     #if not iDir in rundirs:
     #    continue
 
@@ -46,14 +47,14 @@ for i,iDir in enumerate(subDirs):
         or 'physics_Main' in iDir):
         pass
     else:
-        #pass
-        arg_template = arg_template + ' -t'
+        pass
+        #arg_template = arg_template + ' -t'
 
     if 'TOPQ4' in iDir:
         continue
 
-    if not 'physics_Main' in iDir:
-        continue
+    #if not 'physics_Main' in iDir:
+    #    continue
 
     # -- dir name --
     # separate condor dir for each sample

@@ -11,16 +11,16 @@ import math
 ## /////// ##
 
 doSysts = False
-logPlots = True
-histMarginFact = 1.7
+logPlots = False
+histMarginFact = 2.0
 signal_names = ['ued', 'tts', 'ttd', 'bbs', 'bbd', 'xx', 'yy', 'fourtopCI']
 background_names = ['ttb', 'ttc', 'ttl', 'singletop', 'ttW', 'ttZ', 'fourtopSM', 
                     'ttWW', 'ttee', 'ttmumu', 'tttautau', 'ttH', 'wjets-sherpa21',
                     'zjets-sherpa21', 'diboson']
 excluded_names = ['zjets-sherpa22', 'wjets-sherpa22']
  
-signal_draw_names = ['ued1000', 'ued1400']
-#signal_draw_names = []
+#signal_draw_names = ['ued1000', 'ued1400']
+signal_draw_names = []
 
 m_lumiFact = 3200.
 
@@ -61,7 +61,7 @@ def main(argv):
     # one region at a time
     for iReg in m_regions:
         ##testing
-        if not iReg == 'c1l1TTRCLooser6j2b_meff':
+        if not 'c1l0pTTRCLooser5pj2pb_meff' in iReg:
             continue
         ##-------
 
@@ -69,6 +69,10 @@ def main(argv):
         m_hists  = GetHistsFromFiles(m_files, iReg)
         ScaleHistsByFactor(m_hists, m_lumiFact)
         SetLastBinToOverflow(m_hists)
+        for iH in m_hists:
+            if any(a in iH for a in signal_names):
+                continue
+            print iH, m_hists[iH].Integral()
         m_hstack = MakeStackHist(m_hists, iReg)
         m_hratio = ''
         m_legend = MakeLegend(m_hists)
@@ -82,6 +86,8 @@ def main(argv):
         ## -- plotting -- ##
         p2.cd()
         m_hratio.Draw("")
+        
+
 
         p1.cd()
         DrawPlotsToUpperPad(m_hists, m_hstack, iReg)
@@ -228,6 +234,9 @@ def MakeDataOverBkgdHist(hists):
     histMin = GetSmallestBinValAboveZero(ratioHist)
     ratioHist.SetMinimum(histMin*0.8)
     ratioHist.SetMaximum(ratioHist.GetMaximum()*1.2)
+    ratioHist.SetMinimum(0.5)
+    ratioHist.SetMaximum(1.5)
+
 
     # -- labels and formatting -- #
     ratioHist.GetYaxis().SetTitle("Data / MC")
@@ -241,8 +250,8 @@ def MakeDataOverBkgdHist(hists):
     ratioHist.GetYaxis().SetTitleOffset(ratioHist.GetYaxis().GetTitleOffset()*0.3/0.7)
     ratioHist.GetYaxis().SetNdivisions(506)
 
-    print ratioHist.GetMarkerSize()
-    print ratioHist.GetMarkerStyle()
+    #print ratioHist.GetMarkerSize()
+    #print ratioHist.GetMarkerStyle()
 
     return ratioHist
 
@@ -285,7 +294,7 @@ def GetHistsFromFiles(file_list, region):
         if not isTH1:
             f.Close()
             continue
-        print hist_from_file
+        #print hist_from_file
         ## -- end of protection -- #
         hist_from_file.SetDirectory(0)
         for iSample in sample_type_list:

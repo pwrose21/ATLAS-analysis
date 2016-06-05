@@ -141,7 +141,7 @@ GeV             = 1000.
 invGeV          = 0.001
 m_WP            = '77'
 m_cut_btag      = -0.4434 
-m_cut_jet_pt    = 25. * GeV
+m_cut_jet_pt    = 30. * GeV
 m_cut_jet_eta   = 2.5
 m_cut_lep_pt    = 30. * GeV
 m_cut_lep_eta   = 2.5
@@ -165,6 +165,8 @@ m_el_pt = -1
 m_mu_pt = -1
 m_jet_pt = []
 m_rcjet_pt = []
+
+m_mtw = -1
 
 m_btag_vars = ['m_mbb_mindr', 'm_btagjet_pt', 'm_btagjet_eta', 'm_btagjet_n']
 m_mbb_mindr   = []
@@ -267,6 +269,10 @@ def main(argv):
                     hist.SetTitle(hist.GetName())
                     hist.Write()
                     hist.Delete()
+                elif 'cutflow' in hist.GetName():
+                    out_tFile_b.cd()
+                    hist.Write()
+                    hist.Delete()
                 else:
                     sys.exit("ERROR : ttbar hist not properly categorized")
             in_tFile.cd
@@ -291,6 +297,12 @@ def AnalyzeTree(t):
     # we need mostly everything
     t.SetBranchStatus('*', 1)
 
+
+    # setup cutflow hist
+    # ------------------
+    h_cuts = ROOT.TH1F("cutflow_"+tree_name, "cutflow_"+tree_name, 8, 0, 8)
+    h_cuts.SetDirectory(0)
+
     # loop over all events in the file
     # --------------------------------
     for iEvt in range(t.GetEntries()):
@@ -306,14 +318,16 @@ def AnalyzeTree(t):
         ## ================== your analysis here ==================== ##
         ## ========================================================== ##
 
+
+        ## preselection ------------------------------------------------
+        ## -------------------------------------------------------------
+        if not DoPreSelection(t, h_cuts):
+            continue
+
         ## sample slice veto
         if not ApplySampleSliceVeto(t):
             continue
 
-        ## preselection ------------------------------------------------
-        ## -------------------------------------------------------------
-        if not DoPreSelection(t):
-            continue
 
         ## categorize events -------------------------------------------
         ## -------------------------------------------------------------
@@ -379,6 +393,9 @@ def AnalyzeTree(t):
         ## ========================================================== ##
         ## ========================== end =========================== ##
         ## ========================================================== ##
+    
+    hist_dict['cutflow'] = h_cuts
+
     return hist_dict
 
 def GetTtbarWeight(tree):
@@ -421,25 +438,36 @@ def CalculateEventVariables(tree):
     m_el_pt = []
     el_pt = tree.el_pt
     el_eta = tree.el_eta
+    el_d0sig = tree.el_d0sig
+    el_delta_z0_sintheta = tree.el_delta_z0_sintheta
+    el_idx = []
     for i in xrange(len(el_pt)):
         if ( el_pt[i] > m_cut_lep_pt and
-             abs(el_eta[i]) < m_cut_lep_eta ):
+             abs(el_eta[i]) < 2.47 and
+             abs(el_d0sig[i]) < 5 and
+             abs(el_delta_z0_sintheta[i]) < 0.5):
             m_el_n = m_el_n + 1
             m_lep_n = m_lep_n + 1
             m_el_pt.append(el_pt[i])
-
+            el_idx.append(i)
     global m_mu_n
     global m_mu_pt
     m_mu_n = 0
     m_mu_pt = []
     mu_pt = tree.mu_pt
     mu_eta = tree.mu_eta
+    mu_d0sig = tree.mu_d0sig
+    mu_delta_z0_sintheta = tree.mu_delta_z0_sintheta
+    mu_idx = []
     for i in xrange(len(mu_pt)):
         if ( mu_pt[i] > m_cut_lep_pt and
-             abs(mu_eta[i]) < m_cut_lep_eta):
+             abs(mu_eta[i]) < m_cut_lep_eta and
+             abs(mu_d0sig[i]) < 3 and
+             abs(mu_delta_z0_sintheta[i]) < 0.5 ):
             m_mu_n = m_mu_n + 1
             m_lep_n = m_lep_n + 1
             m_mu_pt.append(mu_pt[i])
+            mu_idx.append(i)
 
     ## number of mass-tagged rc jets
     global m_rcjet_n
@@ -456,6 +484,24 @@ def CalculateEventVariables(tree):
              rcjet_m[i] > m_cut_rcjet_m  and rcjet_nsub[i]>=m_cut_rcjet_nsub):
             m_rcjet_n = m_rcjet_n + 1
             m_rcjet_pt.append(rcjet_pt[i])
+
+    ## mtw
+    met_met = tree.met_met
+    met_phi = tree.met_phi
+    el_phi  = tree.el_phi
+    mu_phi  = tree.mu_phi
+    global m_mtw
+    if m_lep_n == 1:
+        if m_el_n == 1:
+            phi = abs(el_phi[el_idx[0]] - met_phi)
+            if (phi > 3.14159) : phi = (2*3.14159) - phi
+            m_mtw = pow(2. * el_pt[el_idx[0]] * met_met * (1. - math.cos(phi)), 0.5) 
+        if m_mu_n == 1:
+            phi = abs(mu_phi[mu_idx[0]] - met_phi)
+            if (phi > 3.14159) : phi = (2*3.14159) - phi
+            m_mtw = pow(2. * mu_pt[mu_idx[0]] * met_met * (1. - math.cos(phi)), 0.5)
+    else:
+        m_mtw = 0
 
 def CalculateBTagVars(tree, doTRF):
     global m_btagjet_n
@@ -530,26 +576,63 @@ def GetListOfBTagJets(tree, trf_cat):
     return btag_jets
 
 
-def DoPreSelection(tree):
-
-    if not(getattr(tree, '1el5j') or getattr(tree, '1mu5j')):
-        return False
+def DoPreSelection(tree, h_cuts):
 
     CalculateEventVariables(tree)
-
     CalculateBTagVars(tree, m_doTRF)
+
+    # intial
+    h_cuts.SetBinContent(1, h_cuts.GetBinContent(1) + 1)
+
+    # lepton trigger
+    """
+    if not (tree.HLT_mu26_imedium or tree.HLT_mu50 or
+            tree.HLT_e120_lhloose or tree.HLT_mu20_iloose_L1MU15 or
+            tree.HLT_e24_lhmedium_L1EM18VH or tree.HLT_e60_lhmedium or
+            tree.HLT_e60_medium or tree.HLT_mu24_imedium or
+            tree.HLT_e140_lhloose or tree.HLT_mu24_iloose_L1MU15):
+        return False
+    """
+    if not ( (tree.HLT_e24_lhmedium_L1EM18VH[0]=='\x01') or 
+             (tree.HLT_e60_lhmedium[0]=='\x01') or 
+             (tree.HLT_e120_lhloose[0]=='\x01') or
+             (tree.HLT_mu20_iloose_L1MU15[0]=='\x01') or 
+             (tree.HLT_mu50[0]=='\x01') ):
+        return False
+    h_cuts.SetBinContent(2, h_cuts.GetBinContent(2) + 1)
+
+    # single lepton
+    if (m_lep_n != 1): return False
+    h_cuts.SetBinContent(3, h_cuts.GetBinContent(3) + 1)
+
+    # trigger match
+    if not ( (tree.el_trigMatch_HLT_e60_lhmedium[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e60_lhmedium)>0 else False) or
+             (tree.el_trigMatch_HLT_e24_lhmedium_L1EM18VH[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e24_lhmedium_L1EM18VH)>0 else False) or
+             (tree.el_trigMatch_HLT_e120_lhloose[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e120_lhloose)>0 else False) or
+             (tree.mu_trigMatch_HLT_mu50[0][0]=='\x01' if len(tree.mu_trigMatch_HLT_mu50)>0 else False) or
+             (tree.mu_trigMatch_HLT_mu20_iloose_L1MU15[0][0]=='\x01' if len(tree.mu_trigMatch_HLT_mu20_iloose_L1MU15)>0 else False) ):
+        return False
+    h_cuts.SetBinContent(4, h_cuts.GetBinContent(4) + 1)
+
+    # 5+ jets
+    if (m_jet_n < 5): return False
+    h_cuts.SetBinContent(5, h_cuts.GetBinContent(5) + 1)
+
+    # 2+ bjets
+    if (not m_doTRF) and (m_btagjet_n < 2): return False
+    h_cuts.SetBinContent(6, h_cuts.GetBinContent(6) + 1)
+
+    # MET + MTW
+    print m_mtw, tree.mTW
+    if (tree.met_met < 20000.) or (tree.met_met + m_mtw < 60000.): return False
+    h_cuts.SetBinContent(7, h_cuts.GetBinContent(7) + 1)
+
+    # top-analysis selection
+    if not(getattr(tree, '1el5j') or getattr(tree, '1mu5j')): return False
+    h_cuts.SetBinContent(8, h_cuts.GetBinContent(8) + 1)
 
     #print globals()["m_lep_n"]
     #print eval('m_lep_n')
-
-    if (m_lep_n != 1) or (m_jet_n < 5):
-        return False
-
-    if (not m_doTRF) and (m_btagjet_n < 2):
-        return False
-
-    if (tree.met_met < 20000.) or (tree.met_met + tree.mTW < 60000.):
-        return False
 
     return True
 
@@ -573,12 +656,14 @@ def GetEventCategories(tree):
 
     event_cat_base = 'c' + str(m_lep_n) + 'l' + ljet_cat + jet_cat
 
+    prefix = ''
     if m_isttbar:
         hfcat = tree.HF_SimpleClassification
         prefix = 'ttb'*(hfcat==1) + 'ttl'*(hfcat==0) + 'ttc'*(hfcat==-1)
         event_cat_base = prefix + event_cat_base
 
     # no trf, use btag category
+    ## pre-sel level only available here
     if not m_doTRF:
         event_cat = event_cat_base + b_cat
         if ( all(a in event_cat for a in ['6j', '1TTRCLooser'])
@@ -589,9 +674,10 @@ def GetEventCategories(tree):
             #print event_cat
         if m_isMC:
             event_cat_dict[event_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
+            event_cat_dict[prefix + 'c1l0pTTRCLooser5pj2pb'] = getattr(tree, 'weight_bTagSF_' + m_WP)
         else:
             event_cat_dict[event_cat] = 1.
-        #event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, 'weight_bTagSF_' + m_WP)
+            event_cat_dict[prefix + 'c1l0pTTRCLooser5pj2pb'] = 1
 
     # do trf, use all categories
     else:
@@ -604,8 +690,6 @@ def GetEventCategories(tree):
                 event_cat = event_cat + mbb_cat
                 #print event_cat
             event_cat_dict[event_cat] = getattr(tree, br)
-            #event_cat_dict[event_cat + '_' + lep_cat] = getattr(tree, br)
-    
     return event_cat_dict
 
 def getMbbCat(tree, tagCut):
