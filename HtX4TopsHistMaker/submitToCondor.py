@@ -1,10 +1,12 @@
 import condor, os, commands, time, sys
 
 # -- the program to run --
-exe = '/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/makeHistograms.py'
+exe = '/export/home/prose/ATLAS-analysis/HtX4TopsHistMaker/makeHistograms_20p7.py'
 
 # -- master directory and subdirectories --
-input_dir = '/export/share/diskvault2/prose/2t2bAnalysis/HtX4TopsNtuples/00-00-04/'
+#input_dir = '/export/share/diskvault2/prose/2t2bAnalysis/HtX4TopsNtuples/00-00-04/'
+#input_dir = '/export/share/data/prose/Run2/2t2bAnalysis/HtX4TopsFramework/HtX4TopsNtuple_trunk_Jun15/condor/test/'
+input_dir = '/export/share/data/prose/Run2/2t2bAnalysis/HtX4TopsFramework/HtX4TopsNtuple_no-idea/condor/ttWW/'
 status, subDirs = commands.getstatusoutput('ls ' + input_dir)
 subDirs = subDirs.split('\n')
 
@@ -35,7 +37,7 @@ for i,iDir in enumerate(subDirs):
     if not 'output.root' in iDir:
         continue
 
-    if not '410000' in iDir:
+    if not '410081' in iDir:
         continue
     #if not iDir in rundirs:
     #    continue
@@ -47,11 +49,11 @@ for i,iDir in enumerate(subDirs):
         or 'physics_Main' in iDir):
         pass
     else:
-        pass
-        #arg_template = arg_template + ' -t'
+        #pass
+        arg_template = arg_template + ' -t'
 
-    if 'TOPQ4' in iDir:
-        continue
+    #if not 'TOPQ4' in iDir:
+    #    continue
 
     #if not 'physics_Main' in iDir:
     #    continue

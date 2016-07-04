@@ -91,7 +91,7 @@ for iDir in fileDirs:
             samples.append(thisSample)
 
 
-f = open("sumWeights.txt", 'w')
+f = open("sumWeights_20p7.txt", 'w')
 f.write("# dsid ## tag ## weight #\n")
 for i in samples:
     f.write(str(i.dsid) + " " + str(i.tag) + " " + str(i.weight) + "\n")

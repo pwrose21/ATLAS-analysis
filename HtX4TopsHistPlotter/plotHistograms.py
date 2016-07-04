@@ -11,7 +11,8 @@ import math
 ## /////// ##
 
 doSysts = False
-logPlots = False
+logPlots = True
+ignoreData = True
 histMarginFact = 2.0
 signal_names = ['ued', 'tts', 'ttd', 'bbs', 'bbd', 'xx', 'yy', 'fourtopCI']
 background_names = ['ttb', 'ttc', 'ttl', 'singletop', 'ttW', 'ttZ', 'fourtopSM', 
@@ -20,9 +21,9 @@ background_names = ['ttb', 'ttc', 'ttl', 'singletop', 'ttW', 'ttZ', 'fourtopSM',
 excluded_names = ['zjets-sherpa22', 'wjets-sherpa22']
  
 #signal_draw_names = ['ued1000', 'ued1400']
-signal_draw_names = []
+signal_draw_names = ['ued1200', 'ued1400', 'ued1600', 'ued1800']
 
-m_lumiFact = 3200.
+m_lumiFact = 10000.
 
 
 ## /////////// ##
@@ -61,7 +62,8 @@ def main(argv):
     # one region at a time
     for iReg in m_regions:
         ##testing
-        if not 'c1l0pTTRCLooser5pj2pb_meff' in iReg:
+        #if not 'c1l0pTTRCLooser5pj2pb' in iReg:
+        if not any(a in iReg for a in ['c1l2TTRCLooser6j2b_meff', 'c1l2TTRCLooser6j3b_meff', 'c1l2TTRCLooser6j4b_meff']):
             continue
         ##-------
 
@@ -70,22 +72,23 @@ def main(argv):
         ScaleHistsByFactor(m_hists, m_lumiFact)
         SetLastBinToOverflow(m_hists)
         for iH in m_hists:
-            if any(a in iH for a in signal_names):
+            if any(a in iH for a in signal_names) and iH not in signal_draw_names:
                 continue
             print iH, m_hists[iH].Integral()
+            print iH, m_hists[iH].GetBinContent(m_hists[iH].GetNbinsX())
         m_hstack = MakeStackHist(m_hists, iReg)
+
         m_hratio = ''
         m_legend = MakeLegend(m_hists)
  
-        if m_hists.get('data', '') and m_hists.get('background', ''):
-            # testing
-            #m_hists['data'].Scale(1.5*4)
-            #m_hists['background'].Scale(4)
-            m_hratio = MakeDataOverBkgdHist(m_hists)
+
+        #if m_hists.get('data', '') and m_hists.get('background', ''):
+        m_hratio = MakeDataOverBkgdHist(m_hists)
 
         ## -- plotting -- ##
         p2.cd()
-        m_hratio.Draw("")
+        if m_hratio:
+            m_hratio.Draw("")
         
 
 
@@ -94,12 +97,13 @@ def main(argv):
 
         ## -- legend and labels -- ##
         m_legend.Draw()
-        ROOT.myText(       0.41,  0.85, 1, "#sqrt{s}= 13 TeV")
-        ROOT.myText(       0.41,  0.80, 1, iReg)
-        ROOT.ATLASLabel(0.41,0.75,"Internal")
+        ROOT.myText(       0.41,  0.85, 1, "#sqrt{s}= 13 TeV, #int L dt = 10 fb^{-1}")
+        ROOT.myText(       0.41,  0.77, 1, iReg)
+        ROOT.ATLASLabel(0.41,0.72,"Work In Progress")
 
         
         c.cd()
+        print c
         c.Print('plots/'+iReg+'.eps')
 
 
@@ -133,7 +137,9 @@ def MakeLegend(hists):
             l.AddEntry(iHTuple[1], iHTuple[0], 'f')
         elif iHTuple[0] in signal_draw_names:
             l.AddEntry(iHTuple[1], iHTuple[0], 'l')
-    l.AddEntry(hists['data'], 'data', 'p')
+    
+    if hists.get('data', ''):
+        l.AddEntry(hists['data'], 'data', 'p')
 
     l.SetBorderSize(0)
     l.SetFillColor(0)
@@ -164,7 +170,7 @@ def DrawPlotsToUpperPad(hists, stackHist, region):
 
     
 
-    PrepHistForLineDraw(bkgdHist)
+    PrepHistForLineDraw(bkgdHist, ROOT.kBlack)
     bkgdHist.Draw()
     stackHist.Draw("HISTsame")
 
@@ -173,10 +179,12 @@ def DrawPlotsToUpperPad(hists, stackHist, region):
 
     for iH in hists:
         if iH in signal_draw_names:
-            PrepHistForLineDraw(hists[iH])
+            PrepHistForLineDraw(hists[iH], ROOT.kRed)
             hists[iH].Draw("same")
 
-    hists['data'].Draw("psame")
+    if hists.get('data', '') and not ignoreData:
+        hists['data'].Draw("psame")
+
     bkgdHist.Draw("axissame")
 
 def GetSmallestBinValAboveZero(hist):
@@ -221,7 +229,8 @@ def SetupCanvasForPlotting():
 #------------------------------------------------------------------------
 
 def MakeDataOverBkgdHist(hists):
-    dataHist = hists.get('data', '')
+    if ignoreData: dataHist = hists.get('background', '')
+    else: dataHist = hists.get('data', '')
     bkgdHist = hists.get('background', '')
     ratioHist = ''
 
@@ -230,6 +239,8 @@ def MakeDataOverBkgdHist(hists):
         ratioHist.SetDirectory(0)
         ratioHist.Divide(bkgdHist)
 
+    if not ratioHist:
+        return
     # -- set range -- #
     histMin = GetSmallestBinValAboveZero(ratioHist)
     ratioHist.SetMinimum(histMin*0.8)
@@ -363,10 +374,11 @@ def PrepHistForStack(hist, sample):
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 
-def PrepHistForLineDraw(hist):
+def PrepHistForLineDraw(hist, color):
     hist.SetMarkerStyle(1)
     hist.SetMarkerSize(1.0)
-
+    hist.SetLineColor(color)
+    hist.SetLineWidth(3)
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 
@@ -374,7 +386,7 @@ def GetHistSampleColor(sample):
     if sample == 'ttb':
         return ROOT.kBlue
     if sample == 'ttc':
-        return ROOT.kRed
+        return ROOT.kYellow
     if sample == 'ttl':
         return ROOT.kCyan
     if sample == 'others':

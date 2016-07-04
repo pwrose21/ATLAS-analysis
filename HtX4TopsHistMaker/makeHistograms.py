@@ -84,7 +84,7 @@ m_btag_sys = []
 ## variables to plot ------------------------------------
 ## branch name can be something already in the tree OR
 ##   the name of a global variable computed in CalculateEventVariables 
-m_plot_vars = [plotVar('Meff', 'meff', 60, 0, 3000., 'GeV'),
+m_plot_vars = [plotVar('m_meff', 'meff', 60, 0, 3000., 'GeV'),
                plotVar('m_btagjet_n', 'nBTags', 10, 0, 10),
                plotVar('m_jet_n', 'nJets', 10, 0, 10, ''),
                plotVar('m_rcjet_n', 'nHOTJets', 5, 0, 5, ''),
@@ -141,7 +141,7 @@ GeV             = 1000.
 invGeV          = 0.001
 m_WP            = '77'
 m_cut_btag      = -0.4434 
-m_cut_jet_pt    = 30. * GeV
+m_cut_jet_pt    = 25. * GeV
 m_cut_jet_eta   = 2.5
 m_cut_lep_pt    = 30. * GeV
 m_cut_lep_eta   = 2.5
@@ -167,7 +167,7 @@ m_jet_pt = []
 m_rcjet_pt = []
 
 m_mtw = -1
-
+m_meff = -1
 m_btag_vars = ['m_mbb_mindr', 'm_btagjet_pt', 'm_btagjet_eta', 'm_btagjet_n']
 m_mbb_mindr   = []
 m_btagjet_pt  = []
@@ -300,9 +300,11 @@ def AnalyzeTree(t):
 
     # setup cutflow hist
     # ------------------
-    h_cuts = ROOT.TH1F("cutflow_"+tree_name, "cutflow_"+tree_name, 8, 0, 8)
+    h_cuts = ROOT.TH1F("cutflow_"+tree_name, "cutflow_"+tree_name, 9, 0, 9)
     h_cuts.SetDirectory(0)
 
+    h_wcuts = ROOT.TH1F("cutflow_weighted_"+tree_name, "cutflow_weighted_"+tree_name, 9, 0, 9)
+    h_wcuts.SetDirectory(0)
     # loop over all events in the file
     # --------------------------------
     for iEvt in range(t.GetEntries()):
@@ -319,9 +321,38 @@ def AnalyzeTree(t):
         ## ========================================================== ##
 
 
+        # comput nominal weight for cutflow
+        weight_nominal = 1
+        w_nom_b = 1
+        if m_isMC:
+            
+            weight_lepton_SF = 1
+            
+            #elif m_mu_n == 1:
+            weight_lepton_SF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
+                                t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
+            #if m_el_n == 1:
+            weight_lepton_SF = (weight_lepton_SF * t.weight_indiv_SF_EL_Reco *
+                                t.weight_indiv_SF_EL_ID * t.weight_indiv_SF_EL_Isol)
+
+            #else:
+            #    print "WARNING :: did not find 1 el or 1 mu in a 1 lep event!!"
+
+        # reweight VLQ samples according to decay type
+        # right now returns 1
+            weight_vlq = GetVLQDecayWeight(t)
+            weight_ttbar = GetTtbarWeight(t)
+        #print 'weight_vlq', weight_vlq
+            
+            weight_nominal = (m_xsec * m_lumi * t.weight_mc * weight_lepton_SF * 
+                              t.weight_pileup * weight_vlq * weight_ttbar * t.weight_jvt / m_sumweights)
+
+            w_nom_b = weight_nominal * t.weight_bTagSF_77
+
+
         ## preselection ------------------------------------------------
         ## -------------------------------------------------------------
-        if not DoPreSelection(t, h_cuts):
+        if not DoPreSelection(t, h_cuts, h_wcuts, w_nom_b):
             continue
 
         ## sample slice veto
@@ -343,29 +374,6 @@ def AnalyzeTree(t):
         ## -------------------------------------------------------------
         weight_dict = {}
 
-        weight_nominal = 1
-        if m_isMC:
-            
-            weight_lepton_SF = 1
-            
-            if m_el_n == 1:
-                weight_lepton_SF = (t.weight_indiv_SF_EL_Trigger * t.weight_indiv_SF_EL_Reco *
-                                    t.weight_indiv_SF_EL_ID * t.weight_indiv_SF_EL_Isol)
-            elif m_mu_n == 1:
-                weight_lepton_SF = (t.weight_indiv_SF_MU_Trigger * t.weight_indiv_SF_MU_ID *
-                                    t.weight_indiv_SF_MU_Isol * t.weight_indiv_SF_MU_TTVA)
-
-            else:
-                print "WARNING :: did not find 1 el or 1 mu in a 1 lep event!!"
-
-        # reweight VLQ samples according to decay type
-        # right now returns 1
-            weight_vlq = GetVLQDecayWeight(t)
-            weight_ttbar = GetTtbarWeight(t)
-        #print 'weight_vlq', weight_vlq
-            
-            weight_nominal = (m_xsec * m_lumi * t.weight_mc * weight_lepton_SF * 
-                              t.weight_pileup * weight_vlq * weight_ttbar/ m_sumweights)
         #print 'weight_pileup', t.weight_pileup
         #print 'weight_nominal', weight_nominal
 
@@ -395,7 +403,7 @@ def AnalyzeTree(t):
         ## ========================================================== ##
     
     hist_dict['cutflow'] = h_cuts
-
+    hist_dict['cutflow_weighted'] = h_wcuts
     return hist_dict
 
 def GetTtbarWeight(tree):
@@ -503,6 +511,16 @@ def CalculateEventVariables(tree):
     else:
         m_mtw = 0
 
+    global m_meff
+    m_meff = 0
+    for i in m_jet_pt:
+        m_meff = m_meff + i
+    for i in m_el_pt:
+        m_meff = m_meff + i
+    for i in m_mu_pt:
+        m_meff = m_meff + i
+    m_meff = m_meff + met_met
+
 def CalculateBTagVars(tree, doTRF):
     global m_btagjet_n
     global m_btagjet_pt
@@ -576,13 +594,14 @@ def GetListOfBTagJets(tree, trf_cat):
     return btag_jets
 
 
-def DoPreSelection(tree, h_cuts):
+def DoPreSelection(tree, h_cuts, h_wcuts, weight):
 
     CalculateEventVariables(tree)
     CalculateBTagVars(tree, m_doTRF)
 
     # intial
     h_cuts.SetBinContent(1, h_cuts.GetBinContent(1) + 1)
+    h_wcuts.SetBinContent(1, h_wcuts.GetBinContent(1) + weight)
 
     # lepton trigger
     """
@@ -593,43 +612,67 @@ def DoPreSelection(tree, h_cuts):
             tree.HLT_e140_lhloose or tree.HLT_mu24_iloose_L1MU15):
         return False
     """
-    if not ( (tree.HLT_e24_lhmedium_L1EM18VH[0]=='\x01') or 
+    trigDiff = 'HLT_e24_lhmedium_L1EM'
+    if m_isMC: trigDiff = trigDiff + '18VH'
+    else : trigDiff = trigDiff + '20VH'
+    if not ( (getattr(tree, trigDiff)[0]=='\x01') or 
              (tree.HLT_e60_lhmedium[0]=='\x01') or 
              (tree.HLT_e120_lhloose[0]=='\x01') or
              (tree.HLT_mu20_iloose_L1MU15[0]=='\x01') or 
              (tree.HLT_mu50[0]=='\x01') ):
         return False
     h_cuts.SetBinContent(2, h_cuts.GetBinContent(2) + 1)
+    h_wcuts.SetBinContent(2, h_wcuts.GetBinContent(2) + weight)
 
     # single lepton
     if (m_lep_n != 1): return False
     h_cuts.SetBinContent(3, h_cuts.GetBinContent(3) + 1)
+    h_wcuts.SetBinContent(3, h_wcuts.GetBinContent(3) + weight)
 
     # trigger match
+    trigMatchDiff = 'el_trigMatch_HLT_e24_lhmedium_L1EM'
+    if m_isMC: trigMatchDiff = trigMatchDiff + '18VH'
+    else : trigMatchDiff = trigMatchDiff + '20VH'
     if not ( (tree.el_trigMatch_HLT_e60_lhmedium[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e60_lhmedium)>0 else False) or
-             (tree.el_trigMatch_HLT_e24_lhmedium_L1EM18VH[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e24_lhmedium_L1EM18VH)>0 else False) or
+             (getattr(tree, trigMatchDiff)[0][0]=='\x01' if len(getattr(tree, trigMatchDiff))>0 else False) or
              (tree.el_trigMatch_HLT_e120_lhloose[0][0]=='\x01' if len(tree.el_trigMatch_HLT_e120_lhloose)>0 else False) or
              (tree.mu_trigMatch_HLT_mu50[0][0]=='\x01' if len(tree.mu_trigMatch_HLT_mu50)>0 else False) or
              (tree.mu_trigMatch_HLT_mu20_iloose_L1MU15[0][0]=='\x01' if len(tree.mu_trigMatch_HLT_mu20_iloose_L1MU15)>0 else False) ):
         return False
     h_cuts.SetBinContent(4, h_cuts.GetBinContent(4) + 1)
+    h_wcuts.SetBinContent(4, h_wcuts.GetBinContent(4) + weight)
 
     # 5+ jets
     if (m_jet_n < 5): return False
     h_cuts.SetBinContent(5, h_cuts.GetBinContent(5) + 1)
+    h_wcuts.SetBinContent(5, h_wcuts.GetBinContent(5) + weight)
 
     # 2+ bjets
     if (not m_doTRF) and (m_btagjet_n < 2): return False
     h_cuts.SetBinContent(6, h_cuts.GetBinContent(6) + 1)
+    h_wcuts.SetBinContent(6, h_wcuts.GetBinContent(6) + weight)
+
+
+    # MET
+    if (tree.met_met < 20000.): return False
+    h_cuts.SetBinContent(7, h_cuts.GetBinContent(7) + 1)
+    h_wcuts.SetBinContent(7, h_wcuts.GetBinContent(7) + weight)
 
     # MET + MTW
-    print m_mtw, tree.mTW
-    if (tree.met_met < 20000.) or (tree.met_met + m_mtw < 60000.): return False
-    h_cuts.SetBinContent(7, h_cuts.GetBinContent(7) + 1)
+    #print m_mtw, tree.mTW
+    if (tree.met_met + m_mtw < 60000.): return False
+    h_cuts.SetBinContent(8, h_cuts.GetBinContent(8) + 1)
+    h_wcuts.SetBinContent(8, h_wcuts.GetBinContent(8) + weight)
+
+    if (m_meff > 400000.):
+        h_cuts.SetBinContent(9, h_cuts.GetBinContent(9) + 1)
+        h_wcuts.SetBinContent(9, h_wcuts.GetBinContent(9) + weight)
+        
 
     # top-analysis selection
-    if not(getattr(tree, '1el5j') or getattr(tree, '1mu5j')): return False
-    h_cuts.SetBinContent(8, h_cuts.GetBinContent(8) + 1)
+    #if not(getattr(tree, '1el5j') or getattr(tree, '1mu5j')): return False
+    #h_cuts.SetBinContent(8, h_cuts.GetBinContent(8) + 1)
+    #h_wcuts.SetBinContent(8, h_wcuts.GetBinContent(8) + weight)
 
     #print globals()["m_lep_n"]
     #print eval('m_lep_n')
@@ -1021,7 +1064,11 @@ def GetTagFromFileName(file_name_str):
         file_tag_str = file_name_str.split('TOPQ1.')[1].split('.HtX4Tops')[0]
         return file_tag_str
     except:
-        return ''
+        try:
+            file_tag_str = file_name_str.split('TOPQ4.')[1].split('.HtX4Tops')[0]
+            return file_tag_str
+        except:
+            return ''
 
 def GetXSecFromFile(dsid, xsec_file):
     xsec = -1.

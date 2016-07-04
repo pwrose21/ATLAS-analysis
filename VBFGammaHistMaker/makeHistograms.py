@@ -58,7 +58,7 @@ m_tree_sys     = ['EG_RESOLUTION_ALL__1down', 'EG_RESOLUTION_ALL__1up',
                   'MUONS_ID__1down', 'MUONS_ID__1up', 'MUONS_MS__1down', 'MUONS_MS__1up', 'MUONS_SCALE__1down', 'MUONS_SCALE__1up',
                   ]
 ## weight systematics -----------------------------------
-m_weight_sys   = ['weight_pileup_UP']
+#m_weight_sys   = ['weight_pileup_UP']
 
 #testing
 m_tree_sys = ['JET_JER_SINGLE_NP__1up','EG_RESOLUTION_ALL__1down','EG_RESOLUTION_ALL__1up']
@@ -67,8 +67,12 @@ m_weight_sys = []
 
 ## variables to plot ------------------------------------
 #m_plot_vars = [plotVar('mBB_Regression', 'mBBReg', 22, 40*1000., 260*1000.)]
-m_plot_vars = [plotVar('mBB_PtRecollbbOneMuPartonBukinNew', 'mBBReg', 22, 40*1000., 260*1000.)]
+m_plot_vars = [plotVar('mBB_PtRecollbbOneMuPartonBukinNew', 'mBBReg', 35, 50., 400.),
+               plotVar('pTB1', 'pTB1', 36, 40., 400.),
+               plotVar('pTB2', 'pTB2', 36, 40., 400.)
+               ]
 
+#plotVar('mBB_PtRecollbbOneMuPartonBukinNew', 'mBBReg', 22, 40*1000., 260*1000.)]
 ## branches needed --------------------------------------
 m_branches = set(['mBB_Regression', 'MV2c20B1', 'MV2c20B2', 'nJ', 'pTBB', 'MCWeight', 
                   'mJJ', 'pTJ1', 'pTB1', 'dEtaJJ', 
@@ -91,8 +95,8 @@ m_sumweights_file_str = "/export/home/prose/ATLAS-analysis/VBFGammaHistMaker/sum
 m_runDir = "/export/home/prose/ATLAS-analysis/VBFGammaHistMaker/"
 
 ## 
-m_bcut = -0.4434 #77%
-
+#m_bcut = -0.4434 #77%
+m_bcut = -0.0436
 ## ------------------------------------------------------
 ## file specific ----------------------------------------
 ## ------------------------------------------------------
@@ -165,7 +169,7 @@ def main(argv):
         for iH in hist_dict:
             if '_Sys' in hist_dict[iH].GetName():
                 d.cd()
-            SetBinErrors(hist_dict[iH],0.3)
+            #SetBinErrors(hist_dict[iH],0.1)
             hist_dict[iH].Write()
             hist_dict[iH].Delete()
             out_tFile.cd()
@@ -263,8 +267,8 @@ def AnalyzeTree(t):
 
 def DoPreSelection(t):
     # cut based from arXiv
-    if not t.passTrig:
-        return False
+    #if not t.passTrig:
+    #    return False
 
     if not t.mJJ > 800000.:
         return False
@@ -277,21 +281,22 @@ def DoPreSelection(t):
     if not t.nJ >= 4:
         return False
 
-    if not t.pTPh > 26000.:
-        return False
+    #if not t.pTPh > 26000.:
+    #    return False
 
     #if not t.BDT > 0:
     #    return False
 
-    if not t.pTBB > 100000.:
+    if not t.pTBB > 80000.:
         return False
 
-    
+    #if not t.BDT > 0.1:
+    #    return False
 
-    if not t.pTJ2 > 40000.:
-        return False
-    if not t.pTB2 > 40000.:
-        return False
+    #if not t.pTJ2 > 40000.:
+    #    return False
+    #if not t.pTB2 > 40000.:
+    #    return False
 
     """
     if not t.dEtaJJ > 4.:
@@ -321,7 +326,7 @@ def GetEventCategories(tree):
 
     """
     pt_bb = tree.pTBB
-    if pt_bb > 100000.:
+    if pt_bb > 80000.:
         pt_bb = '100'
     else:
         pt_bb = '0'
@@ -339,10 +344,14 @@ def GetEventCategories(tree):
         #round to binning#tree.mBB_Regression > 112500. and tree.mBB_Regression < 137500.:
         reg = "SR"
     
+    #reg = 'SR'
+
     event_cat = ( str(n_tag) + 'tag' + str(n_jet) + 'jet_' +
-                  str(pt_bb) + 'ptbb_' + reg)
+                  str(pt_bb) + 'BDT_' + reg)
 
     event_cat_list.append(event_cat)
+
+    event_cat_list.append(event_cat.replace('BDT', 'ptv'))
 
 
     ## Z CR
@@ -352,9 +361,11 @@ def GetEventCategories(tree):
         reg = "SRZ"
 
     event_cat = ( str(n_tag) + 'tag' + str(n_jet) + 'jet_' +
-                  str(pt_bb) + 'ptbb_' + reg)
+                  str(pt_bb) + 'BDT_' + reg)
 
     event_cat_list.append(event_cat)
+    event_cat_list.append(event_cat.replace('BDT', 'ptv'))
+    #event_cat_list.append(event_cat.replace(reg, 'allmBB'))
 
     """
     if n_jet == 4:
@@ -390,7 +401,7 @@ def FillHists(tree, plot_var, event_cat_list, weight_dict, hist_dict):
             for iVal in val:
                 #print "Filling hist with value:", iVal, "weight:", weight_dict[iSys], 'for sample', m_sample_name
                 #print "Weight sys / value:", iSys, weight_dict[iSys]
-                h.Fill(iVal, weight_dict[iSys])
+                h.Fill(iVal/1000., weight_dict[iSys])
 
 def GetUnits(str):
     return "[]"
